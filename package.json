@@ -1,0 +1,12 @@
+{
+  "name": "biri-prints-3d",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema de precificação e gestão da Biri Prints 3D (catálogo, orçamentos, pedidos, clientes, vendedores).",
+  "scripts": {
+    "test": "node tests/run-all.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}

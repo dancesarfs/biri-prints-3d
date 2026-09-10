@@ -1,0 +1,1986 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biri Prints 3D</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#EEF0EF;
+    --surface:#FFFFFF;
+    --surface-2:#E3E7E6;
+    --border:#D3D9D7;
+    --text:#161918;
+    --text-muted:#5B6462;
+    --accent:#0E8F5F;
+    --accent-ink:#FFFFFF;
+    --accent-soft:#DCF1E7;
+    --accent-soft-border:#B7DFCB;
+    --warn:#9A6318;
+    --warn-soft:#F5E7CE;
+    --warn-soft-border:#E6CB99;
+    --danger:#B23A2E;
+    --danger-soft:#F7DFDB;
+    --shadow: 0 1px 2px rgba(20,24,22,.06), 0 6px 16px -8px rgba(20,24,22,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#181B1A;
+      --surface:#212524;
+      --surface-2:#2A2F2D;
+      --border:#3A403D;
+      --text:#EDEFED;
+      --text-muted:#9AA39F;
+      --accent:#35C687;
+      --accent-ink:#0C1512;
+      --accent-soft:#1E332A;
+      --accent-soft-border:#2E4A3C;
+      --warn:#E3B15C;
+      --warn-soft:#332A18;
+      --warn-soft-border:#4F3F22;
+      --danger:#E2766A;
+      --danger-soft:#3A211D;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 24px -10px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#181B1A;
+    --surface:#212524;
+    --surface-2:#2A2F2D;
+    --border:#3A403D;
+    --text:#EDEFED;
+    --text-muted:#9AA39F;
+    --accent:#35C687;
+    --accent-ink:#0C1512;
+    --accent-soft:#1E332A;
+    --accent-soft-border:#2E4A3C;
+    --warn:#E3B15C;
+    --warn-soft:#332A18;
+    --warn-soft-border:#4F3F22;
+    --danger:#E2766A;
+    --danger-soft:#3A211D;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 24px -10px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', system-ui, sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:'Oswald', sans-serif; margin:0; text-wrap:balance;}
+  .mono{font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums;}
+  button{font-family:inherit; cursor:pointer;}
+  input,select{font-family:inherit; font-size:1rem;}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
+
+  /* ---------- shell ---------- */
+  .shell{max-width:960px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;}
+  header.top{
+    padding:18px 16px 14px;
+    display:flex; align-items:center; gap:10px;
+    border-bottom:1px solid var(--border);
+  }
+  .mark{width:30px; height:30px; flex:none; color:var(--accent);}
+  header.top h1{font-size:1.15rem; letter-spacing:.02em; text-transform:uppercase; font-weight:600;}
+  header.top .tagline{font-size:.72rem; color:var(--text-muted); letter-spacing:.03em; margin-top:1px;}
+  nav.tabs-desktop{display:none; margin-left:auto; gap:4px;}
+  nav.tabs-desktop button{
+    background:none; border:1px solid transparent; color:var(--text-muted);
+    padding:8px 14px; border-radius:8px; font-size:.85rem; font-weight:600;
+    text-transform:uppercase; letter-spacing:.03em; display:flex; align-items:center; gap:7px;
+  }
+  nav.tabs-desktop button svg{width:16px; height:16px;}
+  nav.tabs-desktop button.active{background:var(--accent-soft); color:var(--accent); border-color:var(--accent-soft-border);}
+
+  main{flex:1; padding:16px 16px 96px; width:100%;}
+  @media (min-width:720px){
+    main{padding:24px 24px 40px;}
+    nav.tabs-desktop{display:flex;}
+    nav.bottom{display:none !important;}
+  }
+
+  nav.bottom{
+    position:fixed; left:0; right:0; bottom:0; z-index:20;
+    display:flex; background:var(--surface); border-top:1px solid var(--border);
+    box-shadow:0 -2px 12px rgba(0,0,0,.06);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav.bottom button{
+    flex:1; background:none; border:none; color:var(--text-muted);
+    padding:9px 4px 8px; display:flex; flex-direction:column; align-items:center; gap:3px;
+    font-size:.64rem; font-weight:600; text-transform:uppercase; letter-spacing:.02em;
+  }
+  nav.bottom button svg{width:21px; height:21px;}
+  nav.bottom button.active{color:var(--accent);}
+
+  .section-label{
+    font-family:'Oswald', sans-serif; font-size:.78rem; font-weight:600; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--text-muted); margin:0 0 10px;
+  }
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:16px; box-shadow:var(--shadow);
+  }
+  .stack{display:flex; flex-direction:column; gap:14px;}
+  .row{display:flex; gap:10px; align-items:center;}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media (min-width:560px){ .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;} }
+
+  label.field{display:flex; flex-direction:column; gap:5px;}
+  label.field span{font-size:.72rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em;}
+  label.field span .req{color:var(--danger); margin-left:2px;}
+  input.ipt, select.ipt{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:9px;
+    padding:10px 11px; color:var(--text); width:100%;
+  }
+  input.ipt:focus, select.ipt:focus{border-color:var(--accent);}
+  input.ipt.invalid, select.ipt.invalid{border-color:var(--danger); box-shadow:0 0 0 1px var(--danger);}
+  .field-error{font-size:.74rem; color:var(--danger); margin-top:-2px; grid-column:1 / -1;}
+  input.time-input{flex:1; min-width:0; text-align:right;}
+  .unit-suffix{font-size:.78rem; color:var(--text-muted); font-weight:600; flex:none;}
+
+  .btn{
+    border-radius:9px; padding:10px 16px; font-weight:600; font-size:.85rem;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text);
+    display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  }
+  .btn-primary{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
+  .btn-danger{background:var(--danger-soft); border-color:var(--danger-soft); color:var(--danger);}
+  .btn-ghost{background:none; border-color:transparent; color:var(--text-muted);}
+  .btn-sm{padding:6px 11px; font-size:.76rem;}
+  .btn-block{width:100%;}
+
+  .breakdown-row{display:flex; justify-content:space-between; align-items:baseline; padding:6px 0; border-bottom:1px dashed var(--border); font-size:.86rem;}
+  .breakdown-row:last-child{border-bottom:none;}
+  .breakdown-row .lbl{color:var(--text-muted);}
+  .breakdown-row.total .lbl{color:var(--text); font-weight:600;}
+  .breakdown-row.total{border-top:1px solid var(--border); border-bottom:none; margin-top:4px; padding-top:10px;}
+
+  .price-tile{
+    background:var(--accent-soft); border:1px solid var(--accent-soft-border); border-radius:14px;
+    padding:18px 16px; text-align:center;
+  }
+  .price-tile .cap{font-size:.72rem; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--accent);}
+  .price-tile .num{font-family:'IBM Plex Mono'; font-size:2.15rem; font-weight:600; margin-top:4px; font-variant-numeric:tabular-nums;}
+  .badge{
+    display:inline-flex; align-items:center; gap:5px; font-size:.68rem; font-weight:600;
+    text-transform:uppercase; letter-spacing:.03em; padding:3px 9px; border-radius:99px;
+  }
+  .badge-warn{background:var(--warn-soft); color:var(--warn); border:1px solid var(--warn-soft-border);}
+  .badge-accent{background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent-soft-border);}
+  .badge-muted{background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border);}
+
+  .cards-grid{display:grid; grid-template-columns:1fr; gap:12px;}
+  @media (min-width:640px){ .cards-grid{grid-template-columns:1fr 1fr;} }
+  @media (min-width:960px){ .cards-grid{grid-template-columns:1fr 1fr 1fr;} }
+
+  .item-card{background:var(--surface); border:1px solid var(--border); border-radius:13px; padding:14px; box-shadow:var(--shadow);}
+  .item-card .top-row{display:flex; justify-content:space-between; gap:10px; align-items:flex-start;}
+  .item-card h3{font-size:1rem; font-weight:600; font-family:'IBM Plex Sans';}
+  .item-card .meta{font-size:.76rem; color:var(--text-muted); margin-top:2px;}
+  .item-card .price{font-family:'IBM Plex Mono'; font-weight:600; font-size:1.15rem; white-space:nowrap;}
+  .item-card .actions{display:flex; gap:8px; margin-top:12px;}
+
+  .empty{text-align:center; padding:48px 16px; color:var(--text-muted);}
+  .empty svg{width:40px; height:40px; margin-bottom:10px; opacity:.5;}
+  .empty p{margin:4px 0 14px; font-size:.88rem;}
+
+  .config-grid{display:grid; grid-template-columns:1fr; gap:10px;}
+  @media (min-width:640px){ .config-grid{grid-template-columns:1fr 1fr;} }
+  .spec{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px;}
+  .spec .k{font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.03em; color:var(--text-muted);}
+  .spec .v{font-family:'IBM Plex Mono'; font-size:1.1rem; font-weight:600; margin-top:2px;}
+  .spec .note{font-size:.74rem; color:var(--text-muted); margin-top:5px; line-height:1.4;}
+
+  .modal-backdrop{position:fixed; inset:0; background:rgba(10,12,11,.5); z-index:50; display:flex; align-items:flex-end; justify-content:center;}
+  @media (min-width:640px){ .modal-backdrop{align-items:center;} }
+  .modal{
+    background:var(--surface); width:100%; max-width:520px; max-height:88vh; overflow-y:auto;
+    border-radius:16px 16px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+    box-shadow:0 -8px 30px rgba(0,0,0,.25);
+  }
+  @media (min-width:640px){ .modal{border-radius:16px; padding:22px;} }
+  .modal h2{font-size:1.05rem; text-transform:uppercase; letter-spacing:.02em; margin-bottom:14px;}
+  .modal .close-x{position:absolute; top:14px; right:14px;}
+
+  .list-line{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);}
+  .list-line:last-child{border-bottom:none;}
+  .toast{
+    position:fixed; bottom:78px; left:50%; transform:translateX(-50%);
+    background:var(--text); color:var(--bg); padding:9px 16px; border-radius:99px;
+    font-size:.82rem; font-weight:600; z-index:80; box-shadow:var(--shadow);
+  }
+  @media (min-width:720px){ .toast{bottom:24px;} }
+  .fab{
+    position:fixed; right:18px; bottom:88px; z-index:15;
+    width:52px; height:52px; border-radius:50%; background:var(--accent); color:var(--accent-ink);
+    border:none; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow);
+  }
+  .fab svg{width:24px; height:24px;}
+  @media (min-width:720px){ .fab{bottom:28px;} }
+  .offline-banner{
+    background:var(--warn-soft); border:1px solid var(--warn-soft-border); color:var(--warn);
+    border-radius:10px; padding:9px 12px; font-size:.78rem; margin-bottom:14px;
+  }
+  .textbtn{background:none; border:none; color:var(--accent); font-weight:600; font-size:.82rem; padding:4px 0;}
+
+  /* ---- tela de login (versão standalone/GitHub, fora do Claude) ---- */
+  .login-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .login-card{
+    width:100%; max-width:360px; background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:28px 24px; box-shadow:var(--shadow);
+  }
+  .login-card .mark{display:block; margin:0 auto 10px;}
+  .login-card h1{text-align:center; font-size:1.1rem; letter-spacing:.02em; text-transform:uppercase; font-weight:600; margin-bottom:2px;}
+  .login-card .cap{text-align:center; font-size:.8rem; color:var(--text-muted); margin-bottom:18px;}
+  #btnLogout{margin-left:auto;}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <svg class="mark" viewBox="0 0 32 32" fill="none" style="width:34px;height:34px;"><path d="M6 24 L16 4 L26 24" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 24h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M16 4v8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <h1>Biri Prints 3D</h1>
+    <p class="cap">Entre pra acessar seu catálogo e orçamentos</p>
+    <div class="stack">
+      <label class="field"><span>E-mail</span><input class="ipt" id="loginEmail" type="email" autocomplete="username"></label>
+      <label class="field"><span>Senha</span><input class="ipt" id="loginSenha" type="password" autocomplete="current-password"></label>
+      <button class="btn btn-primary btn-block" id="loginBtn">Entrar</button>
+      <p id="loginErro" class="field-error" style="display:none;"></p>
+    </div>
+  </div>
+</div>
+
+<div class="shell" id="appShell" style="display:none;">
+  <header class="top">
+    <svg class="mark" viewBox="0 0 32 32" fill="none"><path d="M6 24 L16 4 L26 24" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 24h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M16 4v8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <div>
+      <h1>Biri Prints 3D</h1>
+      <div class="tagline">Precificação 3D</div>
+    </div>
+    <nav class="tabs-desktop" id="tabsDesktop"></nav>
+    <button class="btn btn-sm btn-ghost" id="btnLogout" title="Sair">Sair</button>
+  </header>
+  <main id="main"></main>
+  <nav class="bottom" id="tabsBottom"></nav>
+</div>
+
+<!--
+  Biri Prints 3D — versão standalone (fora do Claude, com Firebase)
+  Antes de usar, siga o README.md que veio junto com este arquivo:
+  1. Crie um projeto Firebase gratuito e preencha FIREBASE_CONFIG logo abaixo.
+  2. Ative Authentication (E-mail/senha) e crie seu usuário.
+  3. Ative o Firestore e cole as regras de segurança indicadas no README.
+  4. Hospede este arquivo (GitHub Pages, por exemplo) ou abra localmente.
+-->
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
+
+<script>
+'use strict';
+
+/* ================= CONFIGURAÇÃO DO FIREBASE =================
+   Preencha com os dados do SEU projeto Firebase (veja o README.md):
+   Firebase Console → Configurações do projeto → Seus apps → app Web → "SDK setup and configuration".
+   ================================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "COLE_AQUI",
+  authDomain: "COLE_AQUI.firebaseapp.com",
+  projectId: "COLE_AQUI",
+  storageBucket: "COLE_AQUI.appspot.com",
+  messagingSenderId: "COLE_AQUI",
+  appId: "COLE_AQUI",
+};
+
+/* ---------------- constants ---------------- */
+const TABS = [
+  {id:'calc', label:'Calcular', icon: iconCalc},
+  {id:'catalogo', label:'Catálogo', icon: iconLayers},
+  {id:'orcamentos', label:'Orçamentos', icon: iconReceipt},
+  {id:'config', label:'Ajustes', icon: iconGear},
+];
+
+const DEFAULT_CONFIG = {
+  tarifa_kwh: 0.94375,
+  falha_pct: 0.10,
+  mao_de_obra_hora: 0,
+  margem_pct: 1.0,
+  preco_minimo: 8,
+};
+const DEFAULT_MATERIAIS = [
+  {id:'seed-pla-voolt', nome:'PLA Básico', marca:'Voolt', preco_kg:100},
+];
+const DEFAULT_IMPRESSORAS = [
+  {id:'seed-impressora-a1', nome:'Bambu Lab A1', marca:'Bambu Lab', modelo:'A1', preco_compra:4500, potencia_kw:0.12, vida_util_horas:3000},
+];
+const DEFAULT_PRODUTOS = [
+  {id:'seed-teste', nome:'TESTE', material_id:'seed-pla-voolt', impressora_id:'seed-impressora-a1', gramatura:17, tempo_horas:1.35, custo_embalagem:0},
+];
+
+/* ---------------- state ---------------- */
+const state = {
+  dbOk: false,
+  db: null,
+  config: DEFAULT_CONFIG,
+  materiais: DEFAULT_MATERIAIS,
+  impressoras: DEFAULT_IMPRESSORAS,
+  produtos: DEFAULT_PRODUTOS,
+  orcamentos: [],
+  grupos: [],
+  promocoes: [],
+  tab: 'calc',
+  expandedOrc: null,
+};
+
+/* ---------------- icons (inline, stroke-based) ---------------- */
+function iconCalc(){return '<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M16 15h0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';}
+function iconLayers(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3 3 8l9 5 9-5-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 13l9 5 9-5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';}
+function iconReceipt(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8h6M9 12h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';}
+function iconGear(){return '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';}
+function iconPlus(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';}
+function iconEmptyBox(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M3 8l9-5 9 5-9 5-9-5Z" stroke="currentColor" stroke-width="1.6"/><path d="M3 8v9l9 5 9-5V8" stroke="currentColor" stroke-width="1.6"/></svg>';}
+
+/* ---------------- helpers ---------------- */
+const fmtBRL = n => (isFinite(n)?n:0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+const fmtNum = (n, d=2) => (isFinite(n)?n:0).toLocaleString('pt-BR', {minimumFractionDigits:d, maximumFractionDigits:d});
+function fmtTempo(horasDecimais){
+  const totalMin = Math.round((Number(horasDecimais)||0) * 60);
+  const hh = Math.floor(totalMin/60), mm = totalMin%60;
+  if(hh>0 && mm>0) return `${hh}h ${mm}min`;
+  if(hh>0) return `${hh}h`;
+  return `${mm}min`;
+}
+const byId = (arr, id) => arr.find(x => x.id === id);
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+// Resolve gramatura/tempo pra uma peça numa impressora específica: usa o perfil salvo
+// pra essa impressora (produto.perfis_impressora[impressoraId]) quando existir, senão os valores padrão da peça.
+function perfilParaImpressora(produto, impressoraId){
+  if(impressoraId && impressoraId !== produto.impressora_id && produto.perfis_impressora && produto.perfis_impressora[impressoraId]){
+    const pf = produto.perfis_impressora[impressoraId];
+    return {gramatura: pf.gramatura, tempo_horas: pf.tempo_horas};
+  }
+  return {gramatura: produto.gramatura, tempo_horas: produto.tempo_horas};
+}
+
+// Calcula o preço de uma peça usando uma impressora específica (padrão da peça ou alternativa),
+// aplicando o ajuste manual por cima do resultado — independente de qual impressora gerou a base.
+function calcPecaComImpressora(produto, impressoraId, cfg){
+  const material = byId(state.materiais, produto.material_id);
+  const impressora = byId(state.impressoras, impressoraId || produto.impressora_id);
+  const {gramatura, tempo_horas} = perfilParaImpressora(produto, impressoraId);
+  const r = calcPreco({material, impressora, gramatura, tempo_horas, custo_embalagem: produto.custo_embalagem}, cfg);
+  const ajuste = Number(produto.ajuste_manual)||0;
+  return {...r, precoCalculado:r.precoFinal, ajuste, precoFinal: r.precoFinal + ajuste, impressoraUsada: impressora, gramaturaUsada: gramatura, tempoUsado: tempo_horas};
+}
+
+function precoAjustado(produto, cfg){
+  return calcPecaComImpressora(produto, produto.impressora_id, cfg);
+}
+
+function calcPreco({material, impressora, gramatura, tempo_horas, custo_embalagem}, cfg){
+  const g = Number(gramatura)||0, h = Number(tempo_horas)||0, emb = Number(custo_embalagem)||0;
+  const custoMaterial = material ? (g/1000) * Number(material.preco_kg||0) : 0;
+  const potenciaKw = impressora ? Number(impressora.potencia_kw)||0 : 0;
+  const precoImpressora = impressora ? Number(impressora.preco_compra)||0 : 0;
+  const vidaUtilHoras = impressora ? Number(impressora.vida_util_horas)||0 : 0;
+  const custoEnergia = h * (potenciaKw * cfg.tarifa_kwh);
+  const custoDesgaste = h * (precoImpressora / (vidaUtilHoras||1));
+  const subtotal = custoMaterial + custoEnergia + custoDesgaste;
+  const custoFalhas = subtotal * cfg.falha_pct;
+  const custoTecnico = subtotal + custoFalhas;
+  const custoMaoObra = h * cfg.mao_de_obra_hora;
+  const custoTotal = custoTecnico + custoMaoObra + emb;
+  const lucro = custoTotal * cfg.margem_pct;
+  const precoBruto = custoTotal + lucro;
+  const precoFinal = Math.max(precoBruto, cfg.preco_minimo);
+  return {custoMaterial, custoEnergia, custoDesgaste, subtotal, custoFalhas, custoTecnico, custoMaoObra, custoEmbalagem:emb, custoTotal, lucro, precoBruto, precoFinal, pisoAplicado: precoBruto < cfg.preco_minimo};
+}
+
+function salvarPerfilImpressora(produto, impressoraId, gramatura, tempo_horas){
+  const perfis = {...(produto.perfis_impressora||{})};
+  perfis[impressoraId] = {gramatura: Number(gramatura)||0, tempo_horas: Number(tempo_horas)||0};
+  if(!state.dbOk){ produto.perfis_impressora = perfis; return; }
+  state.db.collection('produtos').doc(produto.id).update({perfis_impressora: perfis}).catch(()=> showToast('Não deu pra salvar o perfil agora'));
+}
+
+/* ---------------- kits & promoções sazonais ---------------- */
+function promocaoStatus(promo, hojeISO){
+  const hoje = hojeISO || new Date().toISOString().slice(0,10);
+  if(promo.data_inicio && hoje < promo.data_inicio) return 'agendada';
+  if(promo.data_fim && hoje > promo.data_fim) return 'encerrada';
+  return 'ativa';
+}
+
+function melhorTier(tiers, count){
+  if(!Array.isArray(tiers)) return null;
+  let best = null;
+  tiers.forEach(t=>{
+    const min = Number(t.min_itens)||0;
+    if(count >= min && (!best || min > Number(best.min_itens))) best = t;
+  });
+  return best;
+}
+
+// Calcula, sem empilhar, o melhor desconto de kit aplicável a cada item de um orçamento.
+// itens: [{produto_id?, nome, preco_unit, quantidade}]; a contagem do kit é por PRODUTOS DISTINTOS presentes.
+function calcularDescontosKit(itens, grupos, promocoes, hojeISO){
+  const hoje = hojeISO || new Date().toISOString().slice(0,10);
+  const idsNoOrcamento = new Set((itens||[]).filter(it=>it.produto_id).map(it=>it.produto_id));
+
+  const promosAtivas = (promocoes||[]).filter(p=> promocaoStatus(p, hoje)==='ativa');
+
+  const combos = [];
+  promosAtivas.forEach(promo=>{
+    const grupo = byId(grupos||[], promo.grupo_id);
+    if(!grupo) return;
+    const membrosPresentes = (grupo.produto_ids||[]).filter(pid=>idsNoOrcamento.has(pid));
+    const count = membrosPresentes.length;
+    const tier = melhorTier(promo.tiers, count);
+    if(!tier) return;
+    combos.push({grupo, promo, membrosPresentes, pct: Number(tier.desconto_pct)||0});
+  });
+
+  // por item, escolhe só o melhor combo entre os que o incluem (nunca empilha descontos)
+  const porItem = (itens||[]).map(it=>{
+    if(!it.produto_id) return {it, pct:0, combo:null};
+    let melhor = null;
+    combos.forEach(c=>{
+      if(c.membrosPresentes.includes(it.produto_id) && (!melhor || c.pct > melhor.pct)) melhor = c;
+    });
+    return {it, pct: melhor?melhor.pct:0, combo: melhor};
+  });
+
+  const linhasMap = new Map();
+  let total = 0;
+  porItem.forEach(({it, pct, combo})=>{
+    if(pct<=0 || !combo) return;
+    const subtotalItem = it.preco_unit * it.quantidade;
+    const desconto = subtotalItem * (pct/100);
+    total += desconto;
+    const key = combo.promo.id || combo.promo.nome;
+    if(!linhasMap.has(key)){
+      linhasMap.set(key, {grupoNome:combo.grupo.nome, promoNome:combo.promo.nome, pct, itens:[], subtotal:0, desconto:0});
+    }
+    const linha = linhasMap.get(key);
+    linha.itens.push(it.nome);
+    linha.subtotal += subtotalItem;
+    linha.desconto += desconto;
+  });
+
+  return {total, linhas:[...linhasMap.values()]};
+}
+
+function showToast(msg){
+  const t = document.createElement('div');
+  t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2200);
+}
+
+/* ---------------- validação de campos obrigatórios ---------------- */
+function clearFieldErrors(scope){
+  scope.querySelectorAll('.ipt.invalid').forEach(el=> el.classList.remove('invalid'));
+  scope.querySelectorAll('.field-error').forEach(el=> el.remove());
+}
+function markFieldError(inputEl, msg){
+  if(!inputEl) return inputEl;
+  if(!inputEl.classList.contains('invalid')){
+    inputEl.classList.add('invalid');
+    const err = document.createElement('div');
+    err.className='field-error';
+    err.textContent = msg;
+    inputEl.insertAdjacentElement('afterend', err);
+    const clearOnEdit = ()=>{
+      inputEl.classList.remove('invalid');
+      const sib = inputEl.nextElementSibling;
+      if(sib && sib.classList.contains('field-error')) sib.remove();
+      inputEl.removeEventListener('input', clearOnEdit);
+      inputEl.removeEventListener('change', clearOnEdit);
+    };
+    inputEl.addEventListener('input', clearOnEdit);
+    inputEl.addEventListener('change', clearOnEdit);
+  }
+  return inputEl;
+}
+function focusFirstInvalid(scope){
+  const first = scope.querySelector('.ipt.invalid');
+  if(first){ first.scrollIntoView({behavior:'smooth', block:'center'}); first.focus(); }
+}
+// pra pares de campo (ex.: horas + minutos de um mesmo "tempo"): mostra a mensagem só no primeiro,
+// mas marca e limpa os dois juntos.
+function markFieldErrorPair(mainEl, extraEl, msg){
+  markFieldError(mainEl, msg);
+  if(extraEl && !extraEl.classList.contains('invalid')){
+    extraEl.classList.add('invalid');
+    const clearOnEdit = ()=>{
+      extraEl.classList.remove('invalid');
+      extraEl.removeEventListener('input', clearOnEdit);
+      extraEl.removeEventListener('change', clearOnEdit);
+    };
+    extraEl.addEventListener('input', clearOnEdit);
+    extraEl.addEventListener('change', clearOnEdit);
+  }
+}
+
+function openModal(title, bodyHtml, onMount){
+  closeModal();
+  const bd = document.createElement('div');
+  bd.className='modal-backdrop'; bd.id='modalBackdrop';
+  bd.innerHTML = `<div class="modal"><h2>${title}</h2>${bodyHtml}</div>`;
+  bd.addEventListener('click', e=>{ if(e.target===bd) closeModal(); });
+  document.body.appendChild(bd);
+  if(onMount) onMount(bd);
+}
+function closeModal(){ const el=document.getElementById('modalBackdrop'); if(el) el.remove(); }
+
+/* ---------------- nav render ---------------- */
+function renderNav(){
+  const mk = (btnClass) => TABS.map(t=>`<button class="${btnClass} ${state.tab===t.id?'active':''}" data-tab="${t.id}">${t.icon()}<span>${t.label}</span></button>`).join('');
+  document.getElementById('tabsDesktop').innerHTML = mk('');
+  document.getElementById('tabsBottom').innerHTML = mk('');
+  document.querySelectorAll('[data-tab]').forEach(b=>{
+    b.addEventListener('click', ()=>{ state.tab=b.dataset.tab; state.expandedOrc=null; renderNav(); renderMain(); });
+  });
+}
+
+/* ---------------- main router ---------------- */
+function renderMain(){
+  const main = document.getElementById('main');
+  if(state.tab==='calc') return renderCalc(main);
+  if(state.tab==='catalogo') return renderCatalogo(main);
+  if(state.tab==='orcamentos') return renderOrcamentos(main);
+  if(state.tab==='config') return renderConfig(main);
+}
+
+function offlineBanner(){
+  return state.dbOk ? '' : `<div class="offline-banner">Sem conexão com o armazenamento em nuvem agora — funcionando só como calculadora, nada será salvo. Recarregue a página para tentar de novo.</div>`;
+}
+
+/* ================= CALCULADORA ================= */
+function renderCalc(main){
+  const cfg = state.config;
+  main.innerHTML = `
+    ${offlineBanner()}
+    <p class="section-label">Nova peça</p>
+    <div class="stack">
+      <div class="card stack">
+        <label class="field"><span>Nome da peça<span class="req">*</span></span><input class="ipt" id="cNome" placeholder="Ex.: Suporte de fone"></label>
+        <div class="grid-2">
+          <label class="field"><span>Material<span class="req">*</span></span><select class="ipt" id="cMaterial"></select></label>
+          <label class="field"><span>Impressora<span class="req">*</span></span><select class="ipt" id="cImpressora"></select></label>
+        </div>
+        <label class="field"><span>Gramatura (g)<span class="req">*</span></span><input class="ipt" id="cGram" type="number" inputmode="decimal" step="0.1" placeholder="17"></label>
+        <div class="field">
+          <span>Tempo de máquina<span class="req">*</span></span>
+          <div class="row" style="gap:6px;">
+            <input class="ipt time-input" id="cTempoH" type="number" inputmode="numeric" min="0" step="1" placeholder="0">
+            <span class="unit-suffix">h</span>
+            <input class="ipt time-input" id="cTempoM" type="number" inputmode="numeric" min="0" max="59" step="1" placeholder="0">
+            <span class="unit-suffix">min</span>
+          </div>
+        </div>
+        <label class="field"><span>Custo de embalagem (R$)</span><input class="ipt" id="cEmb" type="number" inputmode="decimal" step="0.01" placeholder="0"></label>
+      </div>
+
+      <div class="card" id="breakdownCard"></div>
+
+      <div class="card stack">
+        <label class="row" style="gap:9px; cursor:pointer;">
+          <input type="checkbox" id="cUsarAjuste" style="width:18px;height:18px;flex:none;">
+          <span style="font-size:.86rem;">Definir um preço manual (ajuste de mercado)</span>
+        </label>
+        <div id="cAjusteBox" class="stack" style="display:none;">
+          <label class="field"><span>Preço final (R$)</span><input class="ipt" id="cPrecoFinal" type="number" step="0.01"></label>
+          <button type="button" class="textbtn" id="cReset" style="align-self:flex-start;">Usar o valor calculado</button>
+        </div>
+      </div>
+
+      <div class="price-tile" id="priceTile"></div>
+      <div id="pisoNote"></div>
+
+      <button class="btn btn-primary btn-block" id="btnSalvarCatalogo">Salvar no catálogo</button>
+    </div>
+  `;
+
+  populateMaterialSelect();
+  populateImpressoraSelect();
+  ['cNome','cGram','cTempoH','cTempoM','cEmb','cPrecoFinal'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', recomputeCalc);
+  });
+  document.getElementById('cMaterial').addEventListener('change', recomputeCalc);
+  document.getElementById('cImpressora').addEventListener('change', recomputeCalc);
+  document.getElementById('btnSalvarCatalogo').addEventListener('click', saveCurrentCalcToCatalogo);
+
+  const cChk = document.getElementById('cUsarAjuste');
+  cChk.addEventListener('change', ()=>{
+    document.getElementById('cAjusteBox').style.display = cChk.checked ? 'flex' : 'none';
+    if(cChk.checked){
+      const r = calcPreco(readCalcDraft(), state.config);
+      document.getElementById('cPrecoFinal').value = r.precoFinal.toFixed(2);
+    }
+    recomputeCalc();
+  });
+  document.getElementById('cReset').addEventListener('click', ()=>{
+    const r = calcPreco(readCalcDraft(), state.config);
+    document.getElementById('cPrecoFinal').value = r.precoFinal.toFixed(2);
+    recomputeCalc();
+  });
+
+  recomputeCalc();
+}
+
+function populateMaterialSelect(){
+  const sel = document.getElementById('cMaterial');
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = state.materiais.map(m=>`<option value="${m.id}">${m.nome} — ${m.marca} (${fmtBRL(m.preco_kg)}/kg)</option>`).join('');
+  if(prev && byId(state.materiais, prev)) sel.value = prev;
+}
+
+function populateImpressoraSelect(){
+  const sel = document.getElementById('cImpressora');
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = state.impressoras.map(i=>`<option value="${i.id}">${i.nome}</option>`).join('');
+  if(prev && byId(state.impressoras, prev)) sel.value = prev;
+}
+
+function readCalcDraft(){
+  const matId = document.getElementById('cMaterial')?.value;
+  const impId = document.getElementById('cImpressora')?.value;
+  const h = Number(document.getElementById('cTempoH')?.value) || 0;
+  const m = Number(document.getElementById('cTempoM')?.value) || 0;
+  return {
+    nome: document.getElementById('cNome')?.value.trim() || '',
+    material_id: matId,
+    material: byId(state.materiais, matId),
+    impressora_id: impId,
+    impressora: byId(state.impressoras, impId),
+    gramatura: document.getElementById('cGram')?.value,
+    tempo_horas: h + m/60,
+    custo_embalagem: document.getElementById('cEmb')?.value,
+  };
+}
+
+function recomputeCalc(){
+  const draft = readCalcDraft();
+  const r = calcPreco(draft, state.config);
+  const rows = [
+    ['Custo Material', r.custoMaterial],
+    ['Custo Energia', r.custoEnergia],
+    ['Custo Desgaste', r.custoDesgaste],
+    ['Subtotal', r.subtotal],
+    [`Custo Falhas (${fmtNum(state.config.falha_pct*100,0)}%)`, r.custoFalhas],
+    ['Custo Técnico', r.custoTecnico],
+    ['Mão de Obra', r.custoMaoObra],
+    ['Embalagem', r.custoEmbalagem],
+  ];
+  document.getElementById('breakdownCard').innerHTML =
+    rows.map(([l,v])=>`<div class="breakdown-row"><span class="lbl">${l}</span><span class="mono">${fmtBRL(v)}</span></div>`).join('') +
+    `<div class="breakdown-row total"><span class="lbl">Custo Total</span><span class="mono">${fmtBRL(r.custoTotal)}</span></div>` +
+    `<div class="breakdown-row"><span class="lbl">Lucro (${fmtNum(state.config.margem_pct*100,0)}% markup)</span><span class="mono">${fmtBRL(r.lucro)}</span></div>`;
+
+  const usarAjuste = document.getElementById('cUsarAjuste')?.checked;
+  let precoExibido = r.precoFinal;
+  let ajusteInfo = '';
+  if(usarAjuste){
+    const raw = document.getElementById('cPrecoFinal')?.value.trim();
+    const desejado = raw==='' ? r.precoFinal : Number(raw);
+    precoExibido = isFinite(desejado) ? desejado : r.precoFinal;
+    const ajuste = precoExibido - r.precoFinal;
+    if(ajuste !== 0){
+      ajusteInfo = `<div class="cap" style="margin-top:2px;">Calculado ${fmtBRL(r.precoFinal)} ${ajuste>0?'+':'−'} ${fmtBRL(Math.abs(ajuste))}</div>`;
+    }
+  }
+  document.getElementById('priceTile').innerHTML = `<div class="cap">Preço final</div><div class="num">${fmtBRL(precoExibido)}</div>${ajusteInfo}`;
+  document.getElementById('pisoNote').innerHTML = r.pisoAplicado
+    ? `<div class="row" style="justify-content:center;margin-top:-6px;"><span class="badge badge-warn">Piso de ${fmtBRL(state.config.preco_minimo)} aplicado</span></div>` : '';
+}
+
+function saveCurrentCalcToCatalogo(){
+  const draft = readCalcDraft();
+  const scope = document.getElementById('main');
+  clearFieldErrors(scope);
+  let temErro = false;
+  if(!draft.nome){ markFieldError(document.getElementById('cNome'), 'Dá um nome pra peça'); temErro=true; }
+  if(!draft.material_id){ markFieldError(document.getElementById('cMaterial'), 'Cadastre um material em Ajustes primeiro'); temErro=true; }
+  if(!draft.impressora_id){ markFieldError(document.getElementById('cImpressora'), 'Cadastre uma impressora em Ajustes primeiro'); temErro=true; }
+  if(!(Number(draft.gramatura)>0)){ markFieldError(document.getElementById('cGram'), 'Informe a gramatura da peça'); temErro=true; }
+  if(!(Number(draft.tempo_horas)>0)){ markFieldErrorPair(document.getElementById('cTempoH'), document.getElementById('cTempoM'), 'Informe o tempo de máquina'); temErro=true; }
+  if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(scope); return; }
+  const r = calcPreco(draft, state.config);
+  let ajuste_manual = 0;
+  if(document.getElementById('cUsarAjuste')?.checked){
+    const raw = document.getElementById('cPrecoFinal')?.value.trim();
+    const desejado = raw==='' ? r.precoFinal : Number(raw);
+    ajuste_manual = isFinite(desejado) ? (desejado - r.precoFinal) : 0;
+  }
+  const data = {
+    nome: draft.nome,
+    material_id: draft.material_id,
+    impressora_id: draft.impressora_id,
+    gramatura: Number(draft.gramatura)||0,
+    tempo_horas: Number(draft.tempo_horas)||0,
+    custo_embalagem: Number(draft.custo_embalagem)||0,
+    ajuste_manual,
+    criado_em: new Date().toISOString(),
+  };
+  if(!state.dbOk){
+    data.id = uid();
+    state.produtos = [data, ...state.produtos];
+    showToast('Salvo (modo local, sem nuvem)');
+    state.tab='catalogo'; renderNav(); renderMain();
+    return;
+  }
+  state.db.collection('produtos').add(data).then(()=>{
+    showToast('Salvo no catálogo');
+    state.tab='catalogo'; renderNav(); renderMain();
+  }).catch(()=> showToast('Não deu pra salvar agora, tenta de novo'));
+}
+
+/* ================= CATÁLOGO ================= */
+function renderCatalogo(main){
+  const produtos = state.produtos;
+  if(produtos.length===0){
+    main.innerHTML = `${offlineBanner()}<div class="empty">${iconEmptyBox()}<h3>Nenhuma peça salva ainda</h3><p>Calcule uma peça e clique em "Salvar no catálogo".</p><button class="btn btn-primary" id="goCalc">Ir para Calcular</button></div>`;
+    document.getElementById('goCalc').addEventListener('click', ()=>{ state.tab='calc'; renderNav(); renderMain(); });
+    return;
+  }
+  main.innerHTML = `${offlineBanner()}
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">${produtos.length} peça${produtos.length>1?'s':''} no catálogo</p>
+      <button class="btn btn-sm" id="btnCompartilharCatalogo">Compartilhar lista</button>
+    </div>
+    <div class="cards-grid" id="catGrid" style="margin-top:12px;"></div>`;
+  document.getElementById('btnCompartilharCatalogo').addEventListener('click', openCompartilharCatalogo);
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = produtos.map(p=>{
+    const material = byId(state.materiais, p.material_id);
+    const impressora = byId(state.impressoras, p.impressora_id);
+    const r = precoAjustado(p, state.config);
+    const ajusteLine = r.ajuste !== 0
+      ? `<div class="meta">Calculado ${fmtBRL(r.precoCalculado)} ${r.ajuste>0?'+':'−'} ${fmtBRL(Math.abs(r.ajuste))} de ajuste</div>` : '';
+    return `<div class="item-card">
+      <div class="top-row">
+        <div>
+          <h3>${p.nome}</h3>
+          <div class="meta">${material? material.nome+' · '+material.marca : 'material removido'} · ${fmtNum(p.gramatura,0)}g · ${fmtTempo(p.tempo_horas)}</div>
+          <div class="meta">${impressora ? '🖨️ '+impressora.nome : 'impressora removida'}</div>
+          ${ajusteLine}
+        </div>
+        <div class="price mono">${fmtBRL(r.precoFinal)}</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-sm" data-edit="${p.id}">Editar</button>
+        <button class="btn btn-sm" data-dup="${p.id}">Duplicar</button>
+        <button class="btn btn-sm" data-add-orc="${p.id}">+ Orçamento</button>
+        <button class="btn btn-sm btn-ghost" data-del="${p.id}">Excluir</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('[data-edit]').forEach(b=>{
+    b.addEventListener('click', ()=> openProdutoEditor(b.dataset.edit));
+  });
+  grid.querySelectorAll('[data-dup]').forEach(b=>{
+    b.addEventListener('click', ()=> openProdutoEditor(b.dataset.dup, true));
+  });
+  grid.querySelectorAll('[data-add-orc]').forEach(b=>{
+    b.addEventListener('click', ()=> openOrcamentoBuilder(null, b.dataset.addOrc));
+  });
+  grid.querySelectorAll('[data-del]').forEach(b=>{
+    b.addEventListener('click', ()=> confirmThenDelete(b, ()=> deleteProduto(b.dataset.del)));
+  });
+}
+
+function gerarTextoCatalogo(produtos){
+  if(!produtos || produtos.length===0) return '';
+  let txt = `📋 *Catálogo Biri Prints 3D*\n\n`;
+  produtos.forEach(p=>{
+    const r = precoAjustado(p, state.config);
+    txt += `🔸 *${p.nome}* — ${fmtBRL(r.precoFinal)}\n`;
+  });
+  txt += `\n_Valores sujeitos a alteração._`;
+  const promoAtiva = (state.promocoes||[]).some(promo => promocaoStatus(promo)==='ativa');
+  if(promoAtiva){
+    txt += `\n\n🎁 Kits com desconto disponíveis nesse período — me chama!`;
+  }
+  return txt;
+}
+
+async function copiarOuCompartilharTexto(txt){
+  if(navigator.share){
+    try{
+      await navigator.share({text: txt});
+      showToast('Compartilhado');
+      return;
+    }catch(e){
+      if(e && e.name === 'AbortError') return; // usuário cancelou o compartilhamento
+      // outro erro (ex.: não suportado nesse navegador) -> cai pro clipboard
+    }
+  }
+  const done = () => showToast('Lista copiada');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopy(txt, done));
+  } else {
+    fallbackCopy(txt, done);
+  }
+}
+
+function openCompartilharCatalogo(){
+  if(state.produtos.length===0){ showToast('Cadastre peças no catálogo primeiro'); return; }
+  const checks = state.produtos.map(p=>`
+    <label class="row" style="gap:9px; cursor:pointer;">
+      <input type="checkbox" class="share-prod-chk" data-id="${p.id}" checked style="width:18px;height:18px;flex:none;">
+      <span style="font-size:.86rem; flex:1;">${p.nome}</span>
+    </label>`).join('');
+
+  openModal('Compartilhar catálogo', `
+    <div class="stack">
+      <div>
+        <p class="section-label">Peças a incluir</p>
+        <div class="stack" style="max-height:220px; overflow-y:auto;">${checks}</div>
+      </div>
+      <div>
+        <p class="section-label">Prévia</p>
+        <textarea class="ipt mono" id="shPreview" readonly rows="10" style="resize:vertical; white-space:pre-wrap;"></textarea>
+      </div>
+      <button class="btn btn-primary btn-block" id="shCopiar">Copiar / Compartilhar</button>
+    </div>
+  `, (bd)=>{
+    const atualizarPreview = ()=>{
+      const idsSelecionados = new Set([...bd.querySelectorAll('.share-prod-chk:checked')].map(c=>c.dataset.id));
+      const selecionados = state.produtos.filter(p=>idsSelecionados.has(p.id));
+      bd.querySelector('#shPreview').value = gerarTextoCatalogo(selecionados);
+    };
+    atualizarPreview();
+    bd.querySelectorAll('.share-prod-chk').forEach(chk=> chk.addEventListener('change', atualizarPreview));
+    bd.querySelector('#shCopiar').addEventListener('click', ()=>{
+      const idsSelecionados = new Set([...bd.querySelectorAll('.share-prod-chk:checked')].map(c=>c.dataset.id));
+      if(idsSelecionados.size===0){ showToast('Selecione pelo menos uma peça'); return; }
+      copiarOuCompartilharTexto(bd.querySelector('#shPreview').value);
+    });
+  });
+}
+
+function openProdutoEditor(id, duplicar){
+  const existing = byId(state.produtos, id);
+  if(!existing) return;
+  const totalMin = Math.round((Number(existing.tempo_horas)||0) * 60);
+  const initH = Math.floor(totalMin/60), initM = totalMin%60;
+  const ajusteAtual = Number(existing.ajuste_manual)||0;
+  const nomeInicial = duplicar ? `${existing.nome} (cópia)` : existing.nome;
+  const materialOptions = state.materiais.map(m=>
+    `<option value="${m.id}" ${m.id===existing.material_id?'selected':''}>${m.nome} — ${m.marca} (${fmtBRL(m.preco_kg)}/kg)</option>`
+  ).join('');
+  const impressoraOptionsPadrao = state.impressoras.map(i=>
+    `<option value="${i.id}" ${i.id===existing.impressora_id?'selected':''}>${i.nome}</option>`
+  ).join('');
+
+  openModal(duplicar?'Duplicar peça':'Editar peça', `
+    ${duplicar?'<p style="font-size:.8rem;color:var(--text-muted);margin:0 0 4px;">Revise os dados abaixo e salve — isso cria uma peça nova, sem alterar a original.</p>':''}
+    <div class="stack">
+      <label class="field"><span>Nome da peça<span class="req">*</span></span><input class="ipt" id="epNome" value="${nomeInicial}"></label>
+      <div class="grid-2">
+        <label class="field"><span>Material<span class="req">*</span></span><select class="ipt" id="epMaterial">${materialOptions}</select></label>
+        <label class="field"><span>Impressora padrão<span class="req">*</span></span><select class="ipt" id="epImpressora">${impressoraOptionsPadrao}</select></label>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span>Gramatura (g)<span class="req">*</span></span><input class="ipt" id="epGram" type="number" step="0.1" value="${existing.gramatura}"></label>
+        <label class="field"><span>Custo de embalagem (R$)</span><input class="ipt" id="epEmb" type="number" step="0.01" value="${Number(existing.custo_embalagem)||0}"></label>
+      </div>
+      <div class="field">
+        <span>Tempo de máquina<span class="req">*</span></span>
+        <div class="row" style="gap:6px;">
+          <input class="ipt time-input" id="epTempoH" type="number" min="0" step="1" value="${initH}">
+          <span class="unit-suffix">h</span>
+          <input class="ipt time-input" id="epTempoM" type="number" min="0" max="59" step="1" value="${initM}">
+          <span class="unit-suffix">min</span>
+        </div>
+      </div>
+
+      <div class="breakdown-row"><span class="lbl">Preço calculado pela fórmula</span><span class="mono" id="epCalculado"></span></div>
+
+      <label class="row" style="gap:9px; cursor:pointer;">
+        <input type="checkbox" id="epUsarAjuste" style="width:18px;height:18px;flex:none;">
+        <span style="font-size:.86rem;">Definir um preço manual (ajuste de mercado)</span>
+      </label>
+      <div id="epAjusteBox" class="stack" style="display:none;">
+        <label class="field">
+          <span>Preço final (R$)</span>
+          <input class="ipt" id="epPrecoFinal" type="number" step="0.01">
+        </label>
+        <button type="button" class="textbtn" id="epReset" style="align-self:flex-start;">Usar o valor calculado</button>
+        <p style="font-size:.76rem;color:var(--text-muted);margin:0;">Some por cima do valor calculado — se você mudar material, gramatura, tempo etc. depois, o cálculo se atualiza sozinho e esse ajuste continua sendo aplicado em cima do novo valor.</p>
+      </div>
+      <p id="epSemAjusteNote" style="font-size:.76rem;color:var(--text-muted);margin:0;">Sem essa opção marcada, o preço final é sempre o valor calculado pela fórmula, acima.</p>
+
+      <div>
+        <p class="section-label">Perfis por impressora (opcional)</p>
+        <p style="font-size:.76rem;color:var(--text-muted);margin:0 0 8px;">Se essa peça leva um tempo ou gramatura diferente em outra impressora, cadastre o perfil aqui. Sem perfil, a peça usa os valores acima em qualquer impressora escolhida num orçamento.</p>
+        <div class="stack" id="epPerfis"></div>
+        <button type="button" class="textbtn" id="epAddPerfil" style="align-self:flex-start;">+ Adicionar perfil de impressora</button>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="epSave">${duplicar?'Salvar como nova peça':'Salvar alterações'}</button>
+    </div>
+  `, (bd)=>{
+    const readDraftAndRecalc = () => {
+      const material = byId(state.materiais, bd.querySelector('#epMaterial').value);
+      const impressora = byId(state.impressoras, bd.querySelector('#epImpressora').value);
+      const gramatura = bd.querySelector('#epGram').value;
+      const h = Number(bd.querySelector('#epTempoH').value)||0, m = Number(bd.querySelector('#epTempoM').value)||0;
+      const custo_embalagem = bd.querySelector('#epEmb').value;
+      const r = calcPreco({material, impressora, gramatura, tempo_horas: h+m/60, custo_embalagem}, state.config);
+      bd.querySelector('#epCalculado').textContent = fmtBRL(r.precoFinal);
+      return r;
+    };
+    let lastCalc = readDraftAndRecalc();
+
+    const chk = bd.querySelector('#epUsarAjuste');
+    const box = bd.querySelector('#epAjusteBox');
+    const semAjusteNote = bd.querySelector('#epSemAjusteNote');
+    const syncBoxVisibility = () => {
+      box.style.display = chk.checked ? 'flex' : 'none';
+      semAjusteNote.style.display = chk.checked ? 'none' : 'block';
+    };
+    chk.checked = ajusteAtual !== 0;
+    bd.querySelector('#epPrecoFinal').value = (lastCalc.precoFinal + ajusteAtual).toFixed(2);
+    syncBoxVisibility();
+
+    chk.addEventListener('change', ()=>{
+      if(chk.checked){ bd.querySelector('#epPrecoFinal').value = (lastCalc.precoFinal + ajusteAtual).toFixed(2); }
+      syncBoxVisibility();
+    });
+
+    ['epMaterial','epImpressora','epGram','epTempoH','epTempoM','epEmb'].forEach(id=>{
+      bd.querySelector('#'+id).addEventListener('input', ()=>{ lastCalc = readDraftAndRecalc(); });
+    });
+    bd.querySelector('#epImpressora').addEventListener('change', ()=>{ lastCalc = readDraftAndRecalc(); renderPerfis(); });
+    bd.querySelector('#epReset').addEventListener('click', ()=>{
+      bd.querySelector('#epPrecoFinal').value = lastCalc.precoFinal.toFixed(2);
+    });
+
+    // ---- perfis por impressora (tempo/gramatura alternativos) ----
+    let perfis = existing.perfis_impressora
+      ? Object.entries(existing.perfis_impressora).map(([impressora_id, v])=>({impressora_id, gramatura:v.gramatura, tempo_horas:v.tempo_horas}))
+      : [];
+    const renderPerfis = ()=>{
+      const box2 = bd.querySelector('#epPerfis');
+      const impressoraPadraoId = bd.querySelector('#epImpressora').value;
+      box2.innerHTML = perfis.length ? perfis.map((pf,i)=>{
+        const outrosEscolhidos = perfis.filter((_,j)=>j!==i).map(p=>p.impressora_id).concat([impressoraPadraoId]);
+        const opts = state.impressoras.filter(imp=> !outrosEscolhidos.includes(imp.id) || imp.id===pf.impressora_id)
+          .map(imp=>`<option value="${imp.id}" ${imp.id===pf.impressora_id?'selected':''}>${imp.nome}</option>`).join('');
+        const totalMin2 = Math.round((Number(pf.tempo_horas)||0)*60);
+        const ph = Math.floor(totalMin2/60), pm = totalMin2%60;
+        return `<div class="card" style="padding:10px;">
+          <div class="stack">
+            <div class="grid-2">
+              <select class="ipt perfil-imp" data-idx="${i}">${opts}</select>
+              <input class="ipt perfil-gram" data-idx="${i}" type="number" step="0.1" value="${pf.gramatura}" placeholder="Gramatura (g)">
+            </div>
+            <div class="row" style="gap:6px;">
+              <input class="ipt time-input perfil-h" data-idx="${i}" type="number" min="0" step="1" value="${ph}">
+              <span class="unit-suffix">h</span>
+              <input class="ipt time-input perfil-m" data-idx="${i}" type="number" min="0" max="59" step="1" value="${pm}">
+              <span class="unit-suffix">min</span>
+              <button type="button" class="btn btn-ghost btn-sm" data-rm-perfil="${i}">✕</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('') : `<p style="color:var(--text-muted); font-size:.8rem;">Nenhum perfil alternativo cadastrado.</p>`;
+
+      box2.querySelectorAll('.perfil-imp').forEach(sel=> sel.addEventListener('change', ()=>{ perfis[Number(sel.dataset.idx)].impressora_id = sel.value; renderPerfis(); }));
+      box2.querySelectorAll('.perfil-gram').forEach(inp=> inp.addEventListener('input', ()=>{ perfis[Number(inp.dataset.idx)].gramatura = inp.value; }));
+      box2.querySelectorAll('.perfil-h, .perfil-m').forEach(inp=> inp.addEventListener('input', ()=>{
+        const idx = Number(inp.dataset.idx);
+        const hh = Number(box2.querySelector(`.perfil-h[data-idx="${idx}"]`).value)||0;
+        const mm = Number(box2.querySelector(`.perfil-m[data-idx="${idx}"]`).value)||0;
+        perfis[idx].tempo_horas = hh + mm/60;
+      }));
+      box2.querySelectorAll('[data-rm-perfil]').forEach(b=> b.addEventListener('click', ()=>{ perfis.splice(Number(b.dataset.rmPerfil),1); renderPerfis(); }));
+    };
+    renderPerfis();
+
+    bd.querySelector('#epAddPerfil').addEventListener('click', ()=>{
+      const usados = perfis.map(p=>p.impressora_id).concat([bd.querySelector('#epImpressora').value]);
+      const disponivel = state.impressoras.find(imp=> !usados.includes(imp.id));
+      if(!disponivel){ showToast('Cadastre outra impressora em Ajustes pra adicionar um perfil'); return; }
+      perfis.push({impressora_id: disponivel.id, gramatura: existing.gramatura||0, tempo_horas: existing.tempo_horas||0});
+      renderPerfis();
+    });
+
+    bd.querySelector('#epSave').addEventListener('click', ()=>{
+      clearFieldErrors(bd);
+      const nome = bd.querySelector('#epNome').value.trim();
+      const material_id = bd.querySelector('#epMaterial').value;
+      const impressora_id = bd.querySelector('#epImpressora').value;
+      const gramatura = Number(bd.querySelector('#epGram').value)||0;
+      const h = Number(bd.querySelector('#epTempoH').value)||0, m = Number(bd.querySelector('#epTempoM').value)||0;
+      let temErro = false;
+      if(!nome){ markFieldError(bd.querySelector('#epNome'), 'Dá um nome pra peça'); temErro=true; }
+      if(!material_id){ markFieldError(bd.querySelector('#epMaterial'), 'Cadastre um material em Ajustes primeiro'); temErro=true; }
+      if(!impressora_id){ markFieldError(bd.querySelector('#epImpressora'), 'Cadastre uma impressora em Ajustes primeiro'); temErro=true; }
+      if(!(gramatura>0)){ markFieldError(bd.querySelector('#epGram'), 'Informe a gramatura da peça'); temErro=true; }
+      if(!((h + m/60)>0)){ markFieldErrorPair(bd.querySelector('#epTempoH'), bd.querySelector('#epTempoM'), 'Informe o tempo de máquina'); temErro=true; }
+      if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(bd); return; }
+      const custo_embalagem = Number(bd.querySelector('#epEmb').value)||0;
+      const material = byId(state.materiais, material_id);
+      const impressora = byId(state.impressoras, impressora_id);
+      const r = calcPreco({material, impressora, gramatura, tempo_horas: h+m/60, custo_embalagem}, state.config);
+      let ajuste_manual = 0;
+      if(chk.checked){
+        const raw = bd.querySelector('#epPrecoFinal').value.trim();
+        const precoFinalDesejado = raw==='' ? r.precoFinal : Number(raw);
+        ajuste_manual = isFinite(precoFinalDesejado) ? (precoFinalDesejado - r.precoFinal) : 0;
+      }
+      const perfis_impressora = {};
+      perfis.forEach(p=>{ if(p.impressora_id) perfis_impressora[p.impressora_id] = {gramatura:Number(p.gramatura)||0, tempo_horas:Number(p.tempo_horas)||0}; });
+      const data = {nome, material_id, impressora_id, gramatura, tempo_horas: h+m/60, custo_embalagem, ajuste_manual, perfis_impressora};
+
+      if(duplicar){
+        if(!state.dbOk){
+          data.id = uid(); data.criado_em = new Date().toISOString();
+          state.produtos = [data, ...state.produtos];
+          closeModal(); state.tab='catalogo'; renderNav(); renderMain(); showToast('Peça duplicada (modo local)');
+          return;
+        }
+        state.db.collection('produtos').add({...data, criado_em: new Date().toISOString()})
+          .then(()=>{ closeModal(); showToast('Peça duplicada'); })
+          .catch(()=> showToast('Não deu pra salvar agora'));
+        return;
+      }
+
+      if(!state.dbOk){ Object.assign(existing, data); closeModal(); renderMain(); showToast('Salvo (modo local)'); return; }
+      state.db.collection('produtos').doc(existing.id).update(data)
+        .then(()=>{ closeModal(); showToast('Peça atualizada'); })
+        .catch(()=> showToast('Não deu pra salvar agora'));
+    });
+  });
+}
+
+function confirmThenDelete(btn, onConfirm){
+  if(btn.dataset.confirming){ onConfirm(); return; }
+  btn.dataset.confirming='1';
+  const original = btn.textContent;
+  btn.textContent='Confirmar?';
+  btn.classList.add('btn-danger');
+  setTimeout(()=>{ if(btn.isConnected){ btn.dataset.confirming=''; btn.textContent=original; btn.classList.remove('btn-danger'); } }, 2500);
+}
+
+function deleteProduto(id){
+  if(!state.dbOk){ state.produtos = state.produtos.filter(p=>p.id!==id); renderMain(); return; }
+  state.db.collection('produtos').doc(id).delete().then(()=>showToast('Peça removida')).catch(()=>showToast('Não deu pra excluir agora'));
+}
+
+/* ================= ORÇAMENTOS ================= */
+function renderOrcamentos(main){
+  const orcs = state.orcamentos;
+  main.innerHTML = `${offlineBanner()}<p class="section-label">${orcs.length} orçamento${orcs.length!==1?'s':''}</p><div class="stack" id="orcList"></div>`;
+  const list = document.getElementById('orcList');
+  if(orcs.length===0){
+    list.innerHTML = `<div class="empty">${iconEmptyBox()}<h3>Nenhum orçamento ainda</h3><p>Monte um orçamento a partir do catálogo ou comece do zero.</p></div>`;
+  } else {
+    list.innerHTML = orcs.map(o=>{
+      const expanded = state.expandedOrc===o.id;
+      const itensHtml = expanded ? `<div class="stack" style="margin-top:10px;">${o.itens.map(it=>`
+        <div class="list-line"><span>${it.nome} × ${fmtNum(it.quantidade,0)}</span><span class="mono">${fmtBRL(it.preco_unit*it.quantidade)}</span></div>
+      `).join('')}
+      ${(o.desconto_kit_linhas&&o.desconto_kit_linhas.length) ? o.desconto_kit_linhas.map(l=>`
+        <div class="list-line" style="color:var(--accent);"><span>Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%)</span><span class="mono">− ${fmtBRL(l.desconto)}</span></div>
+      `).join('') : ''}
+      <div class="row" style="margin-top:8px; flex-wrap:wrap; gap:8px;">
+        <button class="btn btn-sm" data-copy="${o.id}">Copiar resumo</button>
+        <button class="btn btn-sm" data-toggle-status="${o.id}">${o.status==='enviado'?'Marcar como rascunho':'Marcar como enviado'}</button>
+        <button class="btn btn-sm btn-ghost" data-del-orc="${o.id}">Excluir</button>
+      </div>` : '';
+      return `<div class="card">
+        <div class="row" style="cursor:pointer;" data-toggle-orc="${o.id}">
+          <div style="flex:1;">
+            <h3 style="font-family:'IBM Plex Sans'; font-size:1rem; font-weight:600;">${o.cliente || 'Sem cliente'}</h3>
+            <div class="meta" style="font-size:.76rem;color:var(--text-muted);">${new Date(o.criado_em).toLocaleDateString('pt-BR')} · ${o.itens.length} ite${o.itens.length!==1?'ns':'m'}</div>
+          </div>
+          <span class="badge ${o.status==='enviado'?'badge-accent':'badge-muted'}">${o.status==='enviado'?'Enviado':'Rascunho'}</span>
+          <span class="mono" style="font-weight:600;">${fmtBRL(o.total)}</span>
+        </div>
+        ${itensHtml}
+      </div>`;
+    }).join('');
+
+    list.querySelectorAll('[data-toggle-orc]').forEach(el=>{
+      el.addEventListener('click', ()=>{ const id=el.dataset.toggleOrc; state.expandedOrc = state.expandedOrc===id?null:id; renderMain(); });
+    });
+    list.querySelectorAll('[data-copy]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); copyOrcamentoResumo(el.dataset.copy); });
+    });
+    list.querySelectorAll('[data-toggle-status]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); toggleOrcamentoStatus(el.dataset.toggleStatus); });
+    });
+    list.querySelectorAll('[data-del-orc]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); confirmThenDelete(el, ()=>deleteOrcamento(el.dataset.delOrc)); });
+    });
+  }
+
+  if(!document.getElementById('fabNovoOrc')){
+    const fab = document.createElement('button');
+    fab.className='fab'; fab.id='fabNovoOrc'; fab.innerHTML=iconPlus();
+    fab.addEventListener('click', ()=>openOrcamentoBuilder(null, null));
+    document.body.appendChild(fab);
+  }
+}
+
+function copyOrcamentoResumo(id){
+  const o = byId(state.orcamentos, id);
+  if(!o) return;
+  let txt = `Orçamento${o.cliente? ' — '+o.cliente : ''}\n${new Date(o.criado_em).toLocaleDateString('pt-BR')}\n\n`;
+  o.itens.forEach(it=>{ txt += `- ${it.nome} x${it.quantidade} — ${fmtBRL(it.preco_unit)} = ${fmtBRL(it.preco_unit*it.quantidade)}\n`; });
+  if(o.desconto_kit_total>0){
+    txt += `\n`;
+    (o.desconto_kit_linhas||[]).forEach(l=>{ txt += `Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%): − ${fmtBRL(l.desconto)}\n`; });
+  }
+  txt += `\nTotal: ${fmtBRL(o.total)}`;
+  const done = ()=>showToast('Resumo copiado');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopy(txt, done));
+  } else fallbackCopy(txt, done);
+}
+function fallbackCopy(txt, done){
+  const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); done(); }catch(e){ showToast('Não consegui copiar'); }
+  ta.remove();
+}
+
+function toggleOrcamentoStatus(id){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  const novo = o.status==='enviado' ? 'rascunho' : 'enviado';
+  if(!state.dbOk){ o.status=novo; renderMain(); return; }
+  state.db.collection('orcamentos').doc(id).update({status:novo}).catch(()=>showToast('Não deu pra atualizar agora'));
+}
+function deleteOrcamento(id){
+  if(!state.dbOk){ state.orcamentos = state.orcamentos.filter(o=>o.id!==id); renderMain(); return; }
+  state.db.collection('orcamentos').doc(id).delete().then(()=>showToast('Orçamento removido')).catch(()=>showToast('Não deu pra excluir agora'));
+}
+
+function openOrcamentoBuilder(existingId, prefillProdutoId){
+  const existing = existingId ? byId(state.orcamentos, existingId) : null;
+  const draft = {
+    cliente: existing?.cliente || '',
+    itens: existing ? existing.itens.slice() : [],
+  };
+  if(prefillProdutoId){
+    const p = byId(state.produtos, prefillProdutoId);
+    if(p){
+      const r = precoAjustado(p, state.config);
+      draft.itens.push({nome:p.nome, preco_unit:r.precoFinal, quantidade:1, produto_id:p.id, impressora_id:p.impressora_id, incluido:true});
+    }
+  }
+
+  const produtoOptions = state.produtos.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+
+  openModal(existing?'Editar orçamento':'Novo orçamento', `
+    <div class="stack">
+      <label class="field"><span>Cliente (opcional)</span><input class="ipt" id="oCliente" value="${draft.cliente}"></label>
+
+      ${state.grupos.length ? `
+      <div>
+        <p class="section-label" style="margin-bottom:8px;">Adicionar kit completo</p>
+        <div class="row" style="flex-wrap:wrap; gap:8px;">
+          ${state.grupos.map(g=>`<button type="button" class="btn btn-sm" data-add-kit="${g.id}">+ Kit ${g.nome}</button>`).join('')}
+        </div>
+      </div>` : ''}
+
+      <div class="card" style="padding:12px;">
+        <p class="section-label" style="margin-bottom:8px;">Adicionar item</p>
+        <div class="stack">
+          <div class="grid-2">
+            <select class="ipt" id="oProdSel"><option value="">— item avulso —</option>${produtoOptions}</select>
+            <input class="ipt" id="oQtd" type="number" min="1" step="1" value="1" placeholder="Qtd.">
+          </div>
+          <div class="grid-2" id="oAvulsoRow">
+            <input class="ipt" id="oAvulsoNome" placeholder="Nome do item">
+            <input class="ipt" id="oAvulsoPreco" type="number" step="0.01" placeholder="Preço unit. (R$)">
+          </div>
+          <button class="btn btn-block" id="oAddItem">Adicionar item</button>
+        </div>
+      </div>
+
+      <div>
+        <p class="section-label">Itens</p>
+        <div id="oItensList" class="stack"></div>
+        <div id="oKitDescontos"></div>
+        <div class="breakdown-row" id="oSubtotalRow" style="display:none;"><span class="lbl">Subtotal</span><span class="mono" id="oSubtotal"></span></div>
+        <div class="breakdown-row total"><span class="lbl">Total</span><span class="mono" id="oTotal"></span></div>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="oSalvar">${existing?'Salvar alterações':'Criar orçamento'}</button>
+    </div>
+  `, (bd)=>{
+    let expandirImpressoraIdx = null;
+
+    const renderTrocaImpressoraForm = (i, it, produto)=>{
+      const impressoraOptions = state.impressoras.map(imp=>`<option value="${imp.id}" ${imp.id===it.impressora_id?'selected':''}>${imp.nome}</option>`).join('');
+      const {gramatura, tempo_horas} = perfilParaImpressora(produto, it.impressora_id);
+      const totalMin = Math.round((Number(tempo_horas)||0)*60);
+      const hh = Math.floor(totalMin/60), mm = totalMin%60;
+      return `<div class="card" style="padding:10px; margin-top:6px; background:var(--surface-2);">
+        <div class="stack">
+          <label class="field"><span>Impressora pra este orçamento</span><select class="ipt" id="itImp${i}">${impressoraOptions}</select></label>
+          <div class="grid-2">
+            <label class="field"><span>Gramatura (g)</span><input class="ipt" id="itGram${i}" type="number" step="0.1" value="${gramatura}"></label>
+            <div class="field">
+              <span>Tempo</span>
+              <div class="row" style="gap:6px;">
+                <input class="ipt time-input" id="itH${i}" type="number" min="0" step="1" value="${hh}">
+                <span class="unit-suffix">h</span>
+                <input class="ipt time-input" id="itM${i}" type="number" min="0" max="59" step="1" value="${mm}">
+                <span class="unit-suffix">min</span>
+              </div>
+            </div>
+          </div>
+          <label class="row" style="gap:8px; cursor:pointer;">
+            <input type="checkbox" id="itSalvarPerfil${i}" style="width:16px;height:16px;flex:none;">
+            <span style="font-size:.78rem;">Salvar como padrão dessa peça nessa impressora</span>
+          </label>
+          <button type="button" class="btn btn-sm btn-primary" data-aplicar-imp="${i}">Aplicar</button>
+        </div>
+      </div>`;
+    };
+
+    const renderItens = ()=>{
+      const list = bd.querySelector('#oItensList');
+      list.innerHTML = draft.itens.length ? draft.itens.map((it,i)=>{
+        const incluido = it.incluido !== false;
+        const produto = it.produto_id ? byId(state.produtos, it.produto_id) : null;
+        const impressoraAtual = produto && it.impressora_id ? byId(state.impressoras, it.impressora_id) : null;
+        const trocaImpressoraHtml = produto ? `
+          <button type="button" class="textbtn" data-toggle-imp="${i}" style="font-size:.74rem; padding:2px 0;">🖨️ ${impressoraAtual ? impressoraAtual.nome : 'impressora'} ${expandirImpressoraIdx===i ? '▲' : '▼'}</button>
+          ${expandirImpressoraIdx===i ? renderTrocaImpressoraForm(i, it, produto) : ''}
+        ` : '';
+        return `<div class="list-line" style="${incluido?'':'opacity:.45;'} flex-direction:column; align-items:stretch;">
+          <div class="row" style="justify-content:space-between;">
+            <label class="row" style="gap:8px; align-items:center; cursor:pointer; flex:1;">
+              <input type="checkbox" class="item-incl-chk" data-idx="${i}" ${incluido?'checked':''} style="width:17px;height:17px;flex:none;">
+              <span>${it.nome} × ${it.quantidade}</span>
+            </label>
+            <span class="row" style="gap:10px;"><span class="mono">${fmtBRL(it.preco_unit*it.quantidade)}</span><button class="btn btn-ghost btn-sm" data-rm="${i}">✕</button></span>
+          </div>
+          ${trocaImpressoraHtml}
+        </div>`;
+      }).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum item ainda.</p>`;
+      list.querySelectorAll('[data-rm]').forEach(b=> b.addEventListener('click', ()=>{ draft.itens.splice(Number(b.dataset.rm),1); renderItens(); }));
+      list.querySelectorAll('.item-incl-chk').forEach(chk=> chk.addEventListener('change', ()=>{
+        draft.itens[Number(chk.dataset.idx)].incluido = chk.checked;
+        renderItens();
+      }));
+      list.querySelectorAll('[data-toggle-imp]').forEach(b=> b.addEventListener('click', ()=>{
+        const idx = Number(b.dataset.toggleImp);
+        expandirImpressoraIdx = expandirImpressoraIdx===idx ? null : idx;
+        renderItens();
+      }));
+      if(expandirImpressoraIdx !== null){
+        const idx = expandirImpressoraIdx;
+        const selEl = list.querySelector(`#itImp${idx}`);
+        if(selEl){
+          selEl.addEventListener('change', ()=>{
+            const produto = byId(state.produtos, draft.itens[idx].produto_id);
+            const {gramatura, tempo_horas} = perfilParaImpressora(produto, selEl.value);
+            const totalMin = Math.round((Number(tempo_horas)||0)*60);
+            list.querySelector(`#itGram${idx}`).value = gramatura;
+            list.querySelector(`#itH${idx}`).value = Math.floor(totalMin/60);
+            list.querySelector(`#itM${idx}`).value = totalMin%60;
+          });
+        }
+      }
+      list.querySelectorAll('[data-aplicar-imp]').forEach(b=> b.addEventListener('click', ()=>{
+        const i = Number(b.dataset.aplicarImp);
+        const it = draft.itens[i];
+        const produto = byId(state.produtos, it.produto_id);
+        const novaImpId = list.querySelector(`#itImp${i}`).value;
+        const gramatura = Number(list.querySelector(`#itGram${i}`).value)||0;
+        const h = Number(list.querySelector(`#itH${i}`).value)||0, m = Number(list.querySelector(`#itM${i}`).value)||0;
+        const tempo_horas = h + m/60;
+        const impressora = byId(state.impressoras, novaImpId);
+        const material = byId(state.materiais, produto.material_id);
+        const r = calcPreco({material, impressora, gramatura, tempo_horas, custo_embalagem: produto.custo_embalagem}, state.config);
+        it.impressora_id = novaImpId;
+        it.preco_unit = r.precoFinal + (Number(produto.ajuste_manual)||0);
+        const salvarChk = list.querySelector(`#itSalvarPerfil${i}`);
+        if(salvarChk && salvarChk.checked && novaImpId !== produto.impressora_id){
+          salvarPerfilImpressora(produto, novaImpId, gramatura, tempo_horas);
+        }
+        expandirImpressoraIdx = null;
+        renderItens();
+        showToast('Impressora do item atualizada');
+      }));
+
+      const itensIncluidos = draft.itens.filter(it=> it.incluido !== false);
+      const subtotal = itensIncluidos.reduce((s,it)=>s+it.preco_unit*it.quantidade,0);
+      const kit = calcularDescontosKit(itensIncluidos, state.grupos, state.promocoes);
+      draft._kitTotal = kit.total;
+      draft._kitLinhas = kit.linhas;
+
+      const kitBox = bd.querySelector('#oKitDescontos');
+      kitBox.innerHTML = kit.linhas.length ? `<div class="card" style="padding:12px; margin:10px 0; background:var(--accent-soft); border-color:var(--accent-soft-border);">
+        <p class="section-label" style="margin-bottom:6px;">Desconto de kit detectado</p>
+        ${kit.linhas.map(l=>`<div class="breakdown-row"><span class="lbl">${l.promoNome} · ${l.itens.length} produtos (${fmtNum(l.pct,0)}%)</span><span class="mono">− ${fmtBRL(l.desconto)}</span></div>`).join('')}
+      </div>` : '';
+
+      bd.querySelector('#oSubtotalRow').style.display = kit.total>0 ? 'flex' : 'none';
+      bd.querySelector('#oSubtotal').textContent = fmtBRL(subtotal);
+      bd.querySelector('#oTotal').textContent = fmtBRL(subtotal - kit.total);
+    };
+    renderItens();
+
+    bd.querySelectorAll('[data-add-kit]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const grupo = byId(state.grupos, btn.dataset.addKit);
+        if(!grupo) return;
+        (grupo.produto_ids||[]).forEach(pid=>{
+          const p = byId(state.produtos, pid);
+          if(!p) return;
+          const existente = draft.itens.find(it=>it.produto_id===pid);
+          if(existente){ existente.incluido = true; }
+          else {
+            const r = precoAjustado(p, state.config);
+            draft.itens.push({nome:p.nome, preco_unit:r.precoFinal, quantidade:1, produto_id:p.id, impressora_id:p.impressora_id, incluido:true});
+          }
+        });
+        renderItens();
+        showToast(`Itens do kit "${grupo.nome}" adicionados`);
+      });
+    });
+
+    bd.querySelector('#oAddItem').addEventListener('click', ()=>{
+      clearFieldErrors(bd.querySelector('#oAvulsoRow'));
+      const prodId = bd.querySelector('#oProdSel').value;
+      const qtd = Number(bd.querySelector('#oQtd').value)||1;
+      if(prodId){
+        const p = byId(state.produtos, prodId);
+        const r = precoAjustado(p, state.config);
+        draft.itens.push({nome:p.nome, preco_unit:r.precoFinal, quantidade:qtd, produto_id:p.id, impressora_id:p.impressora_id, incluido:true});
+      } else {
+        const nome = bd.querySelector('#oAvulsoNome').value.trim();
+        const preco = Number(bd.querySelector('#oAvulsoPreco').value)||0;
+        let temErro = false;
+        if(!nome){ markFieldError(bd.querySelector('#oAvulsoNome'), 'Dá um nome pro item avulso'); temErro=true; }
+        if(!(preco>0)){ markFieldError(bd.querySelector('#oAvulsoPreco'), 'Informe o preço do item'); temErro=true; }
+        if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(bd.querySelector('#oAvulsoRow')); return; }
+        draft.itens.push({nome, preco_unit:preco, quantidade:qtd, incluido:true});
+        bd.querySelector('#oAvulsoNome').value=''; bd.querySelector('#oAvulsoPreco').value='';
+      }
+      renderItens();
+    });
+
+    bd.querySelector('#oSalvar').addEventListener('click', ()=>{
+      const cliente = bd.querySelector('#oCliente').value.trim();
+      const itensFinais = draft.itens.filter(it=>it.incluido!==false).map(({incluido, ...rest})=>rest);
+      if(itensFinais.length===0){ showToast('Selecione pelo menos um item'); return; }
+      const subtotal = itensFinais.reduce((s,it)=>s+it.preco_unit*it.quantidade,0);
+      const kit = calcularDescontosKit(itensFinais, state.grupos, state.promocoes);
+      const total = subtotal - kit.total;
+      const data = {cliente, itens: itensFinais, subtotal, desconto_kit_total: kit.total, desconto_kit_linhas: kit.linhas, total, status: existing?.status || 'rascunho', criado_em: existing?.criado_em || new Date().toISOString()};
+      if(!state.dbOk){
+        if(existing){ Object.assign(existing, data); } else { data.id=uid(); state.orcamentos=[data, ...state.orcamentos]; }
+        closeModal(); state.tab='orcamentos'; renderNav(); renderMain(); showToast('Salvo (modo local)');
+        return;
+      }
+      const p = existing ? state.db.collection('orcamentos').doc(existing.id).update(data) : state.db.collection('orcamentos').add(data);
+      p.then(()=>{ closeModal(); state.tab='orcamentos'; renderNav(); renderMain(); showToast('Orçamento salvo'); })
+       .catch(()=> showToast('Não deu pra salvar agora'));
+    });
+  });
+}
+
+/* ================= AJUSTES / CONFIG ================= */
+const CONFIG_META = [
+  {k:'tarifa_kwh', label:'Tarifa de energia', unit:'R$/kWh', step:'0.00001', note:'Tarifa cheia da conta de energia (TUSD + TE, com impostos).'},
+  {k:'falha_pct', label:'Taxa de falhas', unit:'%', step:'1', pct:true, note:'Aplicada sobre material + energia + desgaste.'},
+  {k:'mao_de_obra_hora', label:'Mão de obra', unit:'R$/hora', step:'0.5', note:'Hoje zerada — projeto pessoal, sem cobrar a própria hora.'},
+  {k:'margem_pct', label:'Margem (markup)', unit:'%', step:'1', pct:true, note:'Aplicada sobre o custo total. 100% = preço 2× o custo.'},
+  {k:'preco_minimo', label:'Preço mínimo', unit:'R$/peça', step:'0.5', note:'Piso: o preço final nunca fica abaixo disso.'},
+];
+
+function renderConfig(main){
+  const cfg = state.config;
+  main.innerHTML = `
+    ${offlineBanner()}
+    <div class="card stack" style="margin-bottom:22px;">
+      <p class="section-label" style="margin-bottom:0;">Importar backup</p>
+      <p style="font-size:.78rem;color:var(--text-muted);margin:0;">Importa um arquivo de backup (.json) exportado do sistema — usa isso uma vez, pra trazer os dados que já existiam antes de migrar pra cá. Peças/impressoras/materiais/grupos/promoções com o mesmo ID são substituídos; o resto fica como está.</p>
+      <input type="file" id="importarBackupInput" accept="application/json" class="ipt">
+      <p id="importarBackupStatus" style="font-size:.78rem;margin:0;"></p>
+    </div>
+
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">Parâmetros de custo</p>
+      <button class="btn btn-sm" id="btnEditCfg">Editar</button>
+    </div>
+    <div class="config-grid" id="cfgGrid" style="margin-bottom:22px;"></div>
+
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">Impressoras cadastradas</p>
+      <button class="btn btn-sm" id="btnAddImp">+ Impressora</button>
+    </div>
+    <div class="stack" id="impList" style="margin-bottom:22px;"></div>
+
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">Materiais cadastrados</p>
+      <button class="btn btn-sm" id="btnAddMat">+ Material</button>
+    </div>
+    <div class="stack" id="matList" style="margin-bottom:22px;"></div>
+
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">Grupos de kit</p>
+      <button class="btn btn-sm" id="btnAddGrupo">+ Grupo</button>
+    </div>
+    <p style="font-size:.78rem;color:var(--text-muted);margin:0 0 10px;">Produtos que "convivem" entre si — a base para o sistema detectar kits num orçamento.</p>
+    <div class="stack" id="grupoList" style="margin-bottom:22px;"></div>
+
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">Promoções sazonais</p>
+      <button class="btn btn-sm" id="btnAddPromo">+ Promoção</button>
+    </div>
+    <p style="font-size:.78rem;color:var(--text-muted);margin:0 0 10px;">Cada promoção liga um grupo a um período e a faixas de desconto por nº de produtos distintos no kit.</p>
+    <div class="stack" id="promoList"></div>
+  `;
+  const isCurrencyUnit = u => u==='R$' || u==='R$/hora' || u==='R$/peça';
+  document.getElementById('cfgGrid').innerHTML = CONFIG_META.map(m=>{
+    const raw = cfg[m.k];
+    let val;
+    if(m.pct) val = fmtNum(raw*100,0)+'%';
+    else if(isCurrencyUnit(m.unit)) val = fmtBRL(raw);
+    else {
+      const decimals = m.k==='tarifa_kwh' ? 5 : (m.k==='vida_util_horas' ? 0 : 2);
+      val = `${fmtNum(raw, decimals)} ${m.unit}`;
+    }
+    return `<div class="spec"><div class="k">${m.label}</div><div class="v">${val}</div><div class="note">${m.note}</div></div>`;
+  }).join('');
+
+  const impList = document.getElementById('impList');
+  impList.innerHTML = state.impressoras.length ? state.impressoras.map(imp=>`
+    <div class="item-card">
+      <div class="top-row">
+        <div><h3>${imp.nome}</h3><div class="meta">${imp.marca||''}${imp.marca&&imp.modelo?' · ':''}${imp.modelo||''}</div></div>
+        <div class="price mono">${fmtBRL(imp.preco_compra)}</div>
+      </div>
+      <div class="meta" style="margin-top:6px;">${fmtNum(imp.potencia_kw,3)} kW · ${fmtNum(imp.vida_util_horas,0)}h de vida útil</div>
+      <div class="actions">
+        <button class="btn btn-sm" data-edit-imp="${imp.id}">Editar</button>
+        <button class="btn btn-sm btn-ghost" data-del-imp="${imp.id}">Excluir</button>
+      </div>
+    </div>`).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhuma impressora cadastrada.</p>`;
+
+  const matList = document.getElementById('matList');
+  matList.innerHTML = state.materiais.length ? state.materiais.map(m=>`
+    <div class="item-card">
+      <div class="top-row">
+        <div><h3>${m.nome}</h3><div class="meta">${m.marca}</div></div>
+        <div class="price mono">${fmtBRL(m.preco_kg)}/kg</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-sm" data-edit-mat="${m.id}">Editar</button>
+        <button class="btn btn-sm btn-ghost" data-del-mat="${m.id}">Excluir</button>
+      </div>
+    </div>`).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum material cadastrado.</p>`;
+
+  const grupoList = document.getElementById('grupoList');
+  grupoList.innerHTML = state.grupos.length ? state.grupos.map(g=>{
+    const nomes = (g.produto_ids||[]).map(pid=> byId(state.produtos, pid)?.nome || '(peça removida)').join(', ');
+    return `<div class="item-card">
+      <div class="top-row">
+        <div><h3>${g.nome}</h3><div class="meta">${(g.produto_ids||[]).length} produto${(g.produto_ids||[]).length!==1?'s':''}: ${nomes}</div></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-sm" data-edit-grupo="${g.id}">Editar</button>
+        <button class="btn btn-sm btn-ghost" data-del-grupo="${g.id}">Excluir</button>
+      </div>
+    </div>`;
+  }).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum grupo cadastrado.</p>`;
+
+  const promoList = document.getElementById('promoList');
+  promoList.innerHTML = state.promocoes.length ? state.promocoes.map(p=>{
+    const grupo = byId(state.grupos, p.grupo_id);
+    const status = promocaoStatus(p);
+    const badgeClass = status==='ativa' ? 'badge-accent' : (status==='agendada' ? 'badge-warn' : 'badge-muted');
+    const statusLabel = status==='ativa' ? 'Ativa' : (status==='agendada' ? 'Agendada' : 'Encerrada');
+    const tiersTxt = (p.tiers||[]).map(t=>`${t.min_itens}+ produtos: ${fmtNum(t.desconto_pct,0)}%`).join(' · ');
+    const dtFmt = d => d ? new Date(d+'T00:00:00').toLocaleDateString('pt-BR') : '—';
+    return `<div class="item-card">
+      <div class="top-row">
+        <div>
+          <h3>${p.nome}</h3>
+          <div class="meta">${grupo?grupo.nome:'grupo removido'} · ${dtFmt(p.data_inicio)} – ${dtFmt(p.data_fim)}</div>
+          <div class="meta">${tiersTxt}</div>
+        </div>
+        <span class="badge ${badgeClass}">${statusLabel}</span>
+      </div>
+      <div class="actions">
+        <button class="btn btn-sm" data-edit-promo="${p.id}">Editar</button>
+        <button class="btn btn-sm btn-ghost" data-del-promo="${p.id}">Excluir</button>
+      </div>
+    </div>`;
+  }).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhuma promoção cadastrada.</p>`;
+
+  document.getElementById('importarBackupInput').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    // reconsulta o elemento de status a cada atualização: cada escrita no banco durante a
+    // importação dispara um onSnapshot que re-renderiza esta tela, então o elemento capturado
+    // no início ficaria "órfão" (fora do DOM) antes da importação terminar.
+    const setStatus = (msg, cor)=>{
+      const el = document.getElementById('importarBackupStatus');
+      if(el){ el.textContent = msg; el.style.color = cor; }
+    };
+    setStatus('Importando…', 'var(--text-muted)');
+    try{
+      const texto = await file.text();
+      const backup = JSON.parse(texto);
+      await importarBackupJSON(backup);
+      setStatus('Backup importado com sucesso!', 'var(--accent)');
+    }catch(err){
+      setStatus('Não deu pra importar: ' + err.message, 'var(--danger)');
+    }
+    e.target.value = '';
+  });
+
+  document.getElementById('btnEditCfg').addEventListener('click', openConfigEditor);
+  document.getElementById('btnAddImp').addEventListener('click', ()=>openImpressoraEditor(null));
+  impList.querySelectorAll('[data-edit-imp]').forEach(b=> b.addEventListener('click', ()=>openImpressoraEditor(b.dataset.editImp)));
+  impList.querySelectorAll('[data-del-imp]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteImpressora(b.dataset.delImp))));
+  document.getElementById('btnAddMat').addEventListener('click', ()=>openMaterialEditor(null));
+  matList.querySelectorAll('[data-edit-mat]').forEach(b=> b.addEventListener('click', ()=>openMaterialEditor(b.dataset.editMat)));
+  matList.querySelectorAll('[data-del-mat]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteMaterial(b.dataset.delMat))));
+
+  document.getElementById('btnAddGrupo').addEventListener('click', ()=>openGrupoEditor(null));
+  grupoList.querySelectorAll('[data-edit-grupo]').forEach(b=> b.addEventListener('click', ()=>openGrupoEditor(b.dataset.editGrupo)));
+  grupoList.querySelectorAll('[data-del-grupo]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteGrupo(b.dataset.delGrupo))));
+
+  document.getElementById('btnAddPromo').addEventListener('click', ()=>openPromoEditor(null));
+  promoList.querySelectorAll('[data-edit-promo]').forEach(b=> b.addEventListener('click', ()=>openPromoEditor(b.dataset.editPromo)));
+  promoList.querySelectorAll('[data-del-promo]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deletePromocao(b.dataset.delPromo))));
+}
+
+function openConfigEditor(){
+  const cfg = state.config;
+  const fieldsHtml = CONFIG_META.map(m=>{
+    const displayVal = m.pct ? (cfg[m.k]*100) : cfg[m.k];
+    return `<label class="field"><span>${m.label} (${m.unit})</span><input class="ipt" id="cfg_${m.k}" type="number" step="${m.step}" value="${displayVal}"></label>`;
+  }).join('');
+  openModal('Editar parâmetros', `<div class="stack">${fieldsHtml}<button class="btn btn-primary btn-block" id="cfgSave">Salvar</button></div>`, (bd)=>{
+    bd.querySelector('#cfgSave').addEventListener('click', ()=>{
+      const next = {...cfg};
+      CONFIG_META.forEach(m=>{
+        const raw = Number(bd.querySelector('#cfg_'+m.k).value);
+        next[m.k] = m.pct ? raw/100 : raw;
+      });
+      if(!state.dbOk){ state.config = next; closeModal(); renderMain(); showToast('Salvo (modo local)'); return; }
+      state.db.doc('config/geral').set(next).then(()=>{ closeModal(); showToast('Parâmetros atualizados'); })
+        .catch(()=> showToast('Não deu pra salvar agora'));
+    });
+  });
+}
+
+function openMaterialEditor(id){
+  const existing = id ? byId(state.materiais, id) : null;
+  openModal(existing?'Editar material':'Novo material', `
+    <div class="stack">
+      <label class="field"><span>Nome<span class="req">*</span></span><input class="ipt" id="mNome" value="${existing?.nome||''}" placeholder="Ex.: PETG"></label>
+      <label class="field"><span>Marca</span><input class="ipt" id="mMarca" value="${existing?.marca||''}" placeholder="Ex.: Voolt"></label>
+      <label class="field"><span>Preço por Kg (R$)<span class="req">*</span></span><input class="ipt" id="mPreco" type="number" step="0.01" value="${existing?.preco_kg??''}" placeholder="100"></label>
+      <button class="btn btn-primary btn-block" id="mSave">Salvar</button>
+    </div>
+  `, (bd)=>{
+    bd.querySelector('#mSave').addEventListener('click', ()=>{
+      clearFieldErrors(bd);
+      const nome = bd.querySelector('#mNome').value.trim();
+      const marca = bd.querySelector('#mMarca').value.trim();
+      const preco_kg = Number(bd.querySelector('#mPreco').value)||0;
+      let temErro = false;
+      if(!nome){ markFieldError(bd.querySelector('#mNome'), 'Dá um nome pro material'); temErro=true; }
+      if(!(preco_kg>0)){ markFieldError(bd.querySelector('#mPreco'), 'Informe o preço por kg'); temErro=true; }
+      if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(bd); return; }
+      const data = {nome, marca, preco_kg};
+      if(!state.dbOk){
+        if(existing){ Object.assign(existing, data); } else { data.id=uid(); state.materiais=[...state.materiais, data]; }
+        closeModal(); renderMain(); showToast('Salvo (modo local)');
+        return;
+      }
+      const p = existing ? state.db.collection('materiais').doc(existing.id).update(data) : state.db.collection('materiais').add(data);
+      p.then(()=>{ closeModal(); showToast('Material salvo'); }).catch(()=> showToast('Não deu pra salvar agora'));
+    });
+  });
+}
+
+function deleteMaterial(id){
+  if(!state.dbOk){ state.materiais = state.materiais.filter(m=>m.id!==id); renderMain(); return; }
+  state.db.collection('materiais').doc(id).delete().then(()=>showToast('Material removido')).catch(()=>showToast('Não deu pra excluir agora'));
+}
+
+/* -------- impressoras -------- */
+function openImpressoraEditor(id){
+  const existing = id ? byId(state.impressoras, id) : null;
+  openModal(existing?'Editar impressora':'Nova impressora', `
+    <div class="stack">
+      <label class="field"><span>Nome / apelido<span class="req">*</span></span><input class="ipt" id="iNome" value="${existing?.nome||''}" placeholder="Ex.: Bambu Lab A1"></label>
+      <div class="grid-2">
+        <label class="field"><span>Marca</span><input class="ipt" id="iMarca" value="${existing?.marca||''}" placeholder="Ex.: Bambu Lab"></label>
+        <label class="field"><span>Modelo</span><input class="ipt" id="iModelo" value="${existing?.modelo||''}" placeholder="Ex.: A1"></label>
+      </div>
+      <label class="field"><span>Preço de compra (R$)<span class="req">*</span></span><input class="ipt" id="iPreco" type="number" step="1" value="${existing?.preco_compra??''}" placeholder="4500"></label>
+      <div class="grid-2">
+        <label class="field"><span>Potência (kW)<span class="req">*</span></span><input class="ipt" id="iPotencia" type="number" step="0.001" value="${existing?.potencia_kw??''}" placeholder="0.12"></label>
+        <label class="field"><span>Vida útil (horas)<span class="req">*</span></span><input class="ipt" id="iVidaUtil" type="number" step="1" value="${existing?.vida_util_horas??''}" placeholder="3000"></label>
+      </div>
+      <button class="btn btn-primary btn-block" id="iSave">Salvar</button>
+    </div>
+  `, (bd)=>{
+    bd.querySelector('#iSave').addEventListener('click', ()=>{
+      clearFieldErrors(bd);
+      const nome = bd.querySelector('#iNome').value.trim();
+      const marca = bd.querySelector('#iMarca').value.trim();
+      const modelo = bd.querySelector('#iModelo').value.trim();
+      const preco_compra = Number(bd.querySelector('#iPreco').value)||0;
+      const potencia_kw = Number(bd.querySelector('#iPotencia').value)||0;
+      const vida_util_horas = Number(bd.querySelector('#iVidaUtil').value)||0;
+      let temErro = false;
+      if(!nome){ markFieldError(bd.querySelector('#iNome'), 'Dá um nome/apelido pra impressora'); temErro=true; }
+      if(!(preco_compra>0)){ markFieldError(bd.querySelector('#iPreco'), 'Informe o preço de compra'); temErro=true; }
+      if(!(potencia_kw>0)){ markFieldError(bd.querySelector('#iPotencia'), 'Informe a potência da impressora'); temErro=true; }
+      if(!(vida_util_horas>0)){ markFieldError(bd.querySelector('#iVidaUtil'), 'Informe a vida útil estimada'); temErro=true; }
+      if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(bd); return; }
+      const data = {nome, marca, modelo, preco_compra, potencia_kw, vida_util_horas};
+      if(!state.dbOk){
+        if(existing){ Object.assign(existing, data); } else { data.id=uid(); state.impressoras=[...state.impressoras, data]; }
+        closeModal(); renderMain(); showToast('Salvo (modo local)');
+        return;
+      }
+      const p = existing ? state.db.collection('impressoras').doc(existing.id).update(data) : state.db.collection('impressoras').add(data);
+      p.then(()=>{ closeModal(); showToast('Impressora salva'); }).catch(()=> showToast('Não deu pra salvar agora'));
+    });
+  });
+}
+
+function deleteImpressora(id){
+  if(!state.dbOk){ state.impressoras = state.impressoras.filter(i=>i.id!==id); renderMain(); return; }
+  state.db.collection('impressoras').doc(id).delete().then(()=>showToast('Impressora removida')).catch(()=>showToast('Não deu pra excluir agora'));
+}
+
+/* -------- grupos de kit (produtos que "convivem") -------- */
+function openGrupoEditor(id){
+  const existing = id ? byId(state.grupos, id) : null;
+  const checks = state.produtos.map(p=>{
+    const checked = existing && (existing.produto_ids||[]).includes(p.id);
+    return `<label class="row" style="gap:9px; cursor:pointer;">
+      <input type="checkbox" class="grupo-prod-chk" value="${p.id}" ${checked?'checked':''} style="width:18px;height:18px;flex:none;">
+      <span style="font-size:.86rem;">${p.nome}</span>
+    </label>`;
+  }).join('');
+
+  openModal(existing?'Editar grupo':'Novo grupo de kit', `
+    <div class="stack">
+      <label class="field"><span>Nome do grupo<span class="req">*</span></span><input class="ipt" id="gNome" value="${existing?.nome||''}" placeholder="Ex.: Linha Professores"></label>
+      <div>
+        <p class="section-label">Produtos que convivem neste grupo<span class="req">*</span> <span style="text-transform:none; font-weight:400; letter-spacing:normal;">(mínimo 2)</span></p>
+        <div class="stack" style="max-height:260px; overflow-y:auto;" id="gProdutosBox">
+          ${checks || '<p style="color:var(--text-muted); font-size:.85rem;">Cadastre peças no catálogo primeiro.</p>'}
+        </div>
+        <div id="gProdutosErro"></div>
+      </div>
+      <button class="btn btn-primary btn-block" id="gSave">Salvar</button>
+    </div>
+  `, (bd)=>{
+    bd.querySelector('#gSave').addEventListener('click', ()=>{
+      clearFieldErrors(bd);
+      bd.querySelector('#gProdutosErro').innerHTML = '';
+      const nome = bd.querySelector('#gNome').value.trim();
+      const produto_ids = [...bd.querySelectorAll('.grupo-prod-chk:checked')].map(c=>c.value);
+      let temErro = false;
+      if(!nome){ markFieldError(bd.querySelector('#gNome'), 'Dá um nome pro grupo'); temErro=true; }
+      if(produto_ids.length < 2){
+        bd.querySelector('#gProdutosErro').innerHTML = `<div class="field-error" style="margin-top:4px;">Selecione pelo menos 2 produtos que convivem</div>`;
+        temErro = true;
+      }
+      if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(bd); return; }
+      const data = {nome, produto_ids};
+      if(!state.dbOk){
+        if(existing){ Object.assign(existing, data); } else { data.id=uid(); state.grupos=[...state.grupos, data]; }
+        closeModal(); renderMain(); showToast('Salvo (modo local)');
+        return;
+      }
+      const p = existing ? state.db.collection('grupos').doc(existing.id).update(data) : state.db.collection('grupos').add(data);
+      p.then(()=>{ closeModal(); showToast('Grupo salvo'); }).catch(()=> showToast('Não deu pra salvar agora'));
+    });
+  });
+}
+
+function deleteGrupo(id){
+  if(!state.dbOk){ state.grupos = state.grupos.filter(g=>g.id!==id); renderMain(); return; }
+  state.db.collection('grupos').doc(id).delete().then(()=>showToast('Grupo removido')).catch(()=>showToast('Não deu pra excluir agora'));
+}
+
+/* -------- promoções sazonais -------- */
+function openPromoEditor(id){
+  const existing = id ? byId(state.promocoes, id) : null;
+  const grupoOptions = state.grupos.map(g=>`<option value="${g.id}" ${existing&&existing.grupo_id===g.id?'selected':''}>${g.nome}</option>`).join('');
+  const tiersIniciais = (existing?.tiers && existing.tiers.length) ? existing.tiers : [{min_itens:2, desconto_pct:5},{min_itens:4, desconto_pct:10}];
+
+  openModal(existing?'Editar promoção':'Nova promoção', `
+    <div class="stack">
+      <label class="field"><span>Nome da promoção<span class="req">*</span></span><input class="ipt" id="pNome" value="${existing?.nome||''}" placeholder="Ex.: Dia dos Professores"></label>
+      <label class="field"><span>Grupo de kit<span class="req">*</span></span><select class="ipt" id="pGrupo">${grupoOptions || '<option value="">— cadastre um grupo primeiro —</option>'}</select></label>
+      <div class="grid-2">
+        <label class="field"><span>Início<span class="req">*</span></span><input class="ipt" id="pInicio" type="date" value="${existing?.data_inicio||''}"></label>
+        <label class="field"><span>Fim<span class="req">*</span></span><input class="ipt" id="pFim" type="date" value="${existing?.data_fim||''}"></label>
+      </div>
+      <div>
+        <p class="section-label">Faixas de desconto (pelo nº de produtos distintos no kit)</p>
+        <div class="stack" id="pTiers"></div>
+        <button type="button" class="textbtn" id="pAddTier" style="align-self:flex-start;">+ Adicionar faixa</button>
+      </div>
+      <button class="btn btn-primary btn-block" id="pSave">Salvar</button>
+    </div>
+  `, (bd)=>{
+    let tiers = tiersIniciais.map(t=>({...t}));
+    const renderTiers = ()=>{
+      const box = bd.querySelector('#pTiers');
+      box.innerHTML = tiers.map((t,i)=>`
+        <div class="row" style="gap:8px;">
+          <input class="ipt tier-min" type="number" min="2" step="1" value="${t.min_itens}" placeholder="Nº mín. de produtos" style="flex:1;">
+          <input class="ipt tier-pct" type="number" min="0" step="1" value="${t.desconto_pct}" placeholder="% de desconto" style="flex:1;">
+          <button type="button" class="btn btn-ghost btn-sm" data-rm-tier="${i}">✕</button>
+        </div>`).join('');
+      box.querySelectorAll('input').forEach(inp=> inp.addEventListener('input', syncTiersFromInputs));
+      box.querySelectorAll('[data-rm-tier]').forEach(b=> b.addEventListener('click', ()=>{
+        tiers.splice(Number(b.dataset.rmTier),1); renderTiers();
+      }));
+    };
+    const syncTiersFromInputs = () => {
+      const mins = [...bd.querySelectorAll('.tier-min')].map(i=>Number(i.value)||0);
+      const pcts = [...bd.querySelectorAll('.tier-pct')].map(i=>Number(i.value)||0);
+      tiers = mins.map((min,i)=>({min_itens:min, desconto_pct:pcts[i]||0}));
+    };
+    renderTiers();
+    bd.querySelector('#pAddTier').addEventListener('click', ()=>{
+      syncTiersFromInputs();
+      tiers.push({min_itens:2, desconto_pct:5});
+      renderTiers();
+    });
+
+    bd.querySelector('#pSave').addEventListener('click', ()=>{
+      syncTiersFromInputs();
+      clearFieldErrors(bd);
+      const nome = bd.querySelector('#pNome').value.trim();
+      const grupo_id = bd.querySelector('#pGrupo').value;
+      const data_inicio = bd.querySelector('#pInicio').value;
+      const data_fim = bd.querySelector('#pFim').value;
+      let temErro = false;
+      if(!nome){ markFieldError(bd.querySelector('#pNome'), 'Dá um nome pra promoção'); temErro=true; }
+      if(!grupo_id){ markFieldError(bd.querySelector('#pGrupo'), 'Escolhe um grupo de kit'); temErro=true; }
+      if(!data_inicio){ markFieldError(bd.querySelector('#pInicio'), 'Preenche a data de início'); temErro=true; }
+      if(!data_fim){ markFieldError(bd.querySelector('#pFim'), 'Preenche a data de fim'); temErro=true; }
+      if(data_inicio && data_fim && data_fim < data_inicio){
+        markFieldError(bd.querySelector('#pFim'), 'A data de fim não pode vir antes do início'); temErro=true;
+      }
+      const tiersValidos = tiers.filter(t=>t.min_itens>=2 && t.desconto_pct>0);
+      if(tiersValidos.length===0 && !temErro){ showToast('Adiciona pelo menos uma faixa de desconto válida'); return; }
+      if(tiersValidos.length===0) temErro = true;
+      if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(bd); return; }
+      const data = {nome, grupo_id, data_inicio, data_fim, tiers: tiersValidos};
+      if(!state.dbOk){
+        if(existing){ Object.assign(existing, data); } else { data.id=uid(); state.promocoes=[...state.promocoes, data]; }
+        closeModal(); renderMain(); showToast('Salvo (modo local)');
+        return;
+      }
+      const p = existing ? state.db.collection('promocoes').doc(existing.id).update(data) : state.db.collection('promocoes').add(data);
+      p.then(()=>{ closeModal(); showToast('Promoção salva'); }).catch(()=> showToast('Não deu pra salvar agora'));
+    });
+  });
+}
+
+function deletePromocao(id){
+  if(!state.dbOk){ state.promocoes = state.promocoes.filter(p=>p.id!==id); renderMain(); return; }
+  state.db.collection('promocoes').doc(id).delete().then(()=>showToast('Promoção removida')).catch(()=>showToast('Não deu pra excluir agora'));
+}
+
+/* ---------------- boot ---------------- */
+function fullRerender(){
+  if(document.getElementById('modalBackdrop')) return; // don't disturb an open modal
+  renderMain();
+}
+
+// Migração única: quando o app ainda usava só uma impressora fixa (potência/preço/vida útil
+// dentro de config/geral), cria o primeiro registro em "impressoras" a partir desses valores
+// e aponta as peças antigas (sem impressora_id) pra ele — sem exigir recadastro do usuário.
+let migracaoImpressoraEmAndamento = false;
+async function tentarMigrarImpressora(){
+  if(migracaoImpressoraEmAndamento || !state.dbOk) return;
+  if(state.impressoras.length > 0) return; // já existe pelo menos uma impressora cadastrada
+  const cfgAntiga = state.config || {};
+  if(cfgAntiga.potencia_kw===undefined && cfgAntiga.preco_impressora===undefined && cfgAntiga.vida_util_horas===undefined) return;
+  migracaoImpressoraEmAndamento = true;
+  try{
+    const dados = {
+      nome: 'Bambu Lab A1',
+      marca: 'Bambu Lab',
+      modelo: 'A1',
+      preco_compra: Number(cfgAntiga.preco_impressora)||0,
+      potencia_kw: Number(cfgAntiga.potencia_kw)||0,
+      vida_util_horas: Number(cfgAntiga.vida_util_horas)||0,
+    };
+    const ref = await state.db.collection('impressoras').add(dados);
+    const semImpressora = state.produtos.filter(p=>!p.impressora_id);
+    await Promise.all(semImpressora.map(p=>
+      state.db.collection('produtos').doc(p.id).update({impressora_id: ref.id}).catch(()=>{})
+    ));
+  }catch(e){ /* tenta de novo na próxima vez que um snapshot chamar essa função */ }
+  migracaoImpressoraEmAndamento = false;
+}
+
+/* ---------------- importar backup (versão standalone) ----------------
+   Formato esperado (o mesmo exportado do sistema anterior):
+   { config: {...}, impressoras: [{id,...}], materiais: [{id,...}],
+     produtos: [{id,...}], grupos: [{id,...}], promocoes: [{id,...}], orcamentos: [{id,...}] }
+   Cada documento é gravado com set() preservando o ID original — sobrescreve se já existir. */
+async function importarBackupJSON(backup){
+  if(!state.dbOk) throw new Error('sem conexão com o banco de dados agora');
+  const db = state.db;
+  const escritas = [];
+  if(backup.config){
+    escritas.push(db.doc('config/geral').set(backup.config));
+  }
+  const colecoes = ['impressoras', 'materiais', 'produtos', 'grupos', 'promocoes', 'orcamentos'];
+  colecoes.forEach(nomeColecao=>{
+    const itens = backup[nomeColecao];
+    if(!Array.isArray(itens)) return;
+    itens.forEach(item=>{
+      const { id, ...dados } = item;
+      if(!id) return;
+      escritas.push(db.collection(nomeColecao).doc(id).set(dados));
+    });
+  });
+  await Promise.all(escritas);
+}
+
+let bootStarted = false;
+function boot(){
+  if(bootStarted) return;
+  bootStarted = true;
+  renderNav();
+  renderMain();
+  try{
+    const db = firebase.firestore();
+    state.db = db; state.dbOk = true;
+
+    db.doc('config/geral').onSnapshot(snap=>{
+      state.config = snap.exists ? {...DEFAULT_CONFIG, ...snap.data()} : DEFAULT_CONFIG;
+      fullRerender();
+      tentarMigrarImpressora();
+    }, ()=>{});
+
+    db.collection('materiais').onSnapshot(qs=>{
+      state.materiais = qs.docs.map(d=>({id:d.id, ...d.data()}));
+      populateMaterialSelect();
+      if(state.tab==='calc') recomputeCalc();
+      if(state.tab!=='calc') fullRerender();
+    }, ()=>{});
+
+    db.collection('impressoras').onSnapshot(qs=>{
+      state.impressoras = qs.docs.map(d=>({id:d.id, ...d.data()}));
+      populateImpressoraSelect();
+      if(state.tab==='calc') recomputeCalc();
+      if(state.tab!=='calc') fullRerender();
+      tentarMigrarImpressora();
+    }, ()=>{});
+
+    db.collection('produtos').onSnapshot(qs=>{
+      state.produtos = qs.docs.map(d=>({id:d.id, ...d.data()}));
+      if(state.tab!=='calc') fullRerender();
+      tentarMigrarImpressora();
+    }, ()=>{});
+
+    db.collection('orcamentos').onSnapshot(qs=>{
+      state.orcamentos = qs.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (b.criado_em||'').localeCompare(a.criado_em||''));
+      if(state.tab!=='calc') fullRerender();
+    }, ()=>{});
+
+    db.collection('grupos').onSnapshot(qs=>{
+      state.grupos = qs.docs.map(d=>({id:d.id, ...d.data()}));
+      if(state.tab==='config') fullRerender();
+    }, ()=>{});
+
+    db.collection('promocoes').onSnapshot(qs=>{
+      state.promocoes = qs.docs.map(d=>({id:d.id, ...d.data()}));
+      if(state.tab==='config') fullRerender();
+    }, ()=>{});
+
+  }catch(e){ /* stays in local fallback mode */ }
+}
+
+/* ---------------- login / autenticação (versão standalone) ---------------- */
+firebase.initializeApp(FIREBASE_CONFIG);
+
+const loginScreenEl = document.getElementById('loginScreen');
+const appShellEl = document.getElementById('appShell');
+const loginErroEl = document.getElementById('loginErro');
+
+function mostrarErroLogin(msg){
+  loginErroEl.textContent = msg;
+  loginErroEl.style.display = 'block';
+}
+
+function tentarLogin(){
+  loginErroEl.style.display = 'none';
+  const email = document.getElementById('loginEmail').value.trim();
+  const senha = document.getElementById('loginSenha').value;
+  if(!email || !senha){ mostrarErroLogin('Preenche e-mail e senha.'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  firebase.auth().signInWithEmailAndPassword(email, senha)
+    .catch(err=>{
+      const msgs = {
+        'auth/invalid-email': 'E-mail inválido.',
+        'auth/user-not-found': 'Não achei essa conta. Confere se criou o usuário no Firebase.',
+        'auth/wrong-password': 'Senha incorreta.',
+        'auth/invalid-credential': 'E-mail ou senha incorretos.',
+        'auth/too-many-requests': 'Muitas tentativas — espera um pouco e tenta de novo.',
+      };
+      mostrarErroLogin(msgs[err.code] || ('Não deu pra entrar: ' + err.message));
+    })
+    .finally(()=>{ btn.disabled = false; btn.textContent = 'Entrar'; });
+}
+document.getElementById('loginBtn').addEventListener('click', tentarLogin);
+document.getElementById('loginSenha').addEventListener('keydown', e=>{ if(e.key==='Enter') tentarLogin(); });
+document.getElementById('loginEmail').addEventListener('keydown', e=>{ if(e.key==='Enter') tentarLogin(); });
+
+document.getElementById('btnLogout').addEventListener('click', ()=>{
+  firebase.auth().signOut();
+});
+
+firebase.auth().onAuthStateChanged(user=>{
+  if(user){
+    loginScreenEl.style.display = 'none';
+    appShellEl.style.display = '';
+    boot();
+  } else {
+    appShellEl.style.display = 'none';
+    loginScreenEl.style.display = 'flex';
+  }
+});
+</script>
+</body>
+</html>

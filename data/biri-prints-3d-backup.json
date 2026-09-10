@@ -1,0 +1,112 @@
+{
+  "config": {
+    "tarifa_kwh": 0.94375,
+    "falha_pct": 0.1,
+    "mao_de_obra_hora": 0,
+    "margem_pct": 1,
+    "preco_minimo": 8
+  },
+  "impressoras": [
+    {
+      "id": "914wc16tpb2q7l1x5im4",
+      "nome": "Bambu Lab A1",
+      "marca": "Bambu Lab",
+      "modelo": "A1",
+      "preco_compra": 4500,
+      "potencia_kw": 0.12,
+      "vida_util_horas": 3000
+    }
+  ],
+  "materiais": [
+    {
+      "id": "seed-pla-voolt",
+      "nome": "PLA Básico",
+      "marca": "Multifila",
+      "preco_kg": 110
+    }
+  ],
+  "produtos": [
+    {
+      "id": "3tfqrot597v6bfcl7l06",
+      "nome": "Porta Post-it maçã",
+      "material_id": "seed-pla-voolt",
+      "impressora_id": "914wc16tpb2q7l1x5im4",
+      "gramatura": 50,
+      "tempo_horas": 3.1666666666666665,
+      "custo_embalagem": 0,
+      "ajuste_manual": 1.6610249999999986,
+      "criado_em": "2026-09-07T20:20:44.903Z"
+    },
+    {
+      "id": "bq2nlqo9rz1dh8vjo0d8",
+      "nome": "Marca páginas maçã",
+      "material_id": "seed-pla-voolt",
+      "impressora_id": "914wc16tpb2q7l1x5im4",
+      "gramatura": 7,
+      "tempo_horas": 0.8,
+      "custo_embalagem": 0,
+      "ajuste_manual": -3,
+      "criado_em": "2026-09-07T20:42:22.587Z"
+    },
+    {
+      "id": "fosov26qtkphpouspwii",
+      "nome": "cestinha de maçã",
+      "material_id": "seed-pla-voolt",
+      "impressora_id": "914wc16tpb2q7l1x5im4",
+      "gramatura": 16,
+      "tempo_horas": 1.3333333333333333,
+      "custo_embalagem": 0,
+      "ajuste_manual": 1.3957999999999995,
+      "criado_em": "2026-09-07T19:16:27.862Z"
+    },
+    {
+      "id": "j1xbbxuurptpckqrngzi",
+      "nome": "Porta canetas grande - Formato de lápis",
+      "material_id": "seed-pla-voolt",
+      "impressora_id": "914wc16tpb2q7l1x5im4",
+      "gramatura": 79,
+      "tempo_horas": 2.5833333333333335,
+      "custo_embalagem": 0,
+      "ajuste_manual": -0.2866375000000012,
+      "criado_em": "2026-09-07T20:39:23.036Z"
+    },
+    {
+      "id": "nqqmdb1p94rgozna03nk",
+      "nome": "Porta canetas pequeno - Formato de lápis",
+      "material_id": "seed-pla-voolt",
+      "impressora_id": "914wc16tpb2q7l1x5im4",
+      "gramatura": 33,
+      "tempo_horas": 1.35,
+      "custo_embalagem": -0.01,
+      "ajuste_manual": 2.2426474999999986,
+      "criado_em": "2026-09-07T20:33:42.844Z"
+    }
+  ],
+  "grupos": [
+    {
+      "id": "mxzymn4wjy2on0jzlqsd",
+      "nome": "Kit Professores",
+      "produto_ids": [
+        "3tfqrot597v6bfcl7l06",
+        "bq2nlqo9rz1dh8vjo0d8",
+        "fosov26qtkphpouspwii",
+        "j1xbbxuurptpckqrngzi",
+        "nqqmdb1p94rgozna03nk"
+      ]
+    }
+  ],
+  "promocoes": [
+    {
+      "id": "895iwg7vmafdr512vrv4",
+      "nome": "Dia dos professores",
+      "grupo_id": "mxzymn4wjy2on0jzlqsd",
+      "data_inicio": "2026-09-01",
+      "data_fim": "2026-10-09",
+      "tiers": [
+        { "min_itens": 3, "desconto_pct": 5 },
+        { "min_itens": 4, "desconto_pct": 8 }
+      ]
+    }
+  ],
+  "orcamentos": []
+}
