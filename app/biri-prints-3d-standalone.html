@@ -1104,6 +1104,7 @@ function renderOrcamentos(main){
         <div class="list-line" style="color:var(--accent);"><span>Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%)</span><span class="mono">− ${fmtBRL(l.desconto)}</span></div>
       `).join('') : ''}
       <div class="row" style="margin-top:8px; flex-wrap:wrap; gap:8px;">
+        <button class="btn btn-sm" style="background:var(--accent); border-color:var(--accent); color:var(--accent-ink);" data-whatsapp="${o.id}">Enviar por WhatsApp</button>
         <button class="btn btn-sm" data-copy="${o.id}">Copiar resumo</button>
         <button class="btn btn-sm" data-toggle-status="${o.id}">${o.status==='enviado'?'Marcar como rascunho':'Marcar como enviado'}</button>
         <button class="btn btn-sm btn-ghost" data-del-orc="${o.id}">Excluir</button>
@@ -1127,6 +1128,9 @@ function renderOrcamentos(main){
     list.querySelectorAll('[data-copy]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); copyOrcamentoResumo(el.dataset.copy); });
     });
+    list.querySelectorAll('[data-whatsapp]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); enviarOrcamentoWhatsApp(el.dataset.whatsapp); });
+    });
     list.querySelectorAll('[data-toggle-status]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); toggleOrcamentoStatus(el.dataset.toggleStatus); });
     });
@@ -1143,16 +1147,24 @@ function renderOrcamentos(main){
   }
 }
 
+// Mesmo texto usado pelo "Copiar resumo" e pelo "Enviar por WhatsApp" (ver enviarOrcamentoWhatsApp
+// abaixo) — os ícones ■/◆ são símbolos geométricos simples (nunca tratados como emoji de verdade),
+// de propósito: um emoji de verdade chega corrompido quando o texto passa por uma URL wa.me/
+// api.whatsapp.com?text=... na hora de abrir o link (testado no celular na versão principal do app).
+function gerarTextoOrcamento(o){
+  let txt = `■ *Orçamento${o.cliente? ' — '+o.cliente : ''}*\n_${new Date(o.criado_em).toLocaleDateString('pt-BR')}_\n\n`;
+  o.itens.forEach(it=>{ txt += `◆ *${it.nome}* × ${fmtNum(it.quantidade,0)} — ${fmtBRL(it.preco_unit*it.quantidade)}\n`; });
+  if(o.desconto_kit_total>0){
+    txt += `\nSubtotal: ${fmtBRL(o.subtotal)}\n`;
+    (o.desconto_kit_linhas||[]).forEach(l=>{ txt += `_Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%): − ${fmtBRL(l.desconto)}_\n`; });
+  }
+  txt += `\n*Total: ${fmtBRL(o.total)}*`;
+  return txt;
+}
 function copyOrcamentoResumo(id){
   const o = byId(state.orcamentos, id);
   if(!o) return;
-  let txt = `Orçamento${o.cliente? ' — '+o.cliente : ''}\n${new Date(o.criado_em).toLocaleDateString('pt-BR')}\n\n`;
-  o.itens.forEach(it=>{ txt += `- ${it.nome} x${it.quantidade} — ${fmtBRL(it.preco_unit)} = ${fmtBRL(it.preco_unit*it.quantidade)}\n`; });
-  if(o.desconto_kit_total>0){
-    txt += `\n`;
-    (o.desconto_kit_linhas||[]).forEach(l=>{ txt += `Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%): − ${fmtBRL(l.desconto)}\n`; });
-  }
-  txt += `\nTotal: ${fmtBRL(o.total)}`;
+  const txt = gerarTextoOrcamento(o);
   const done = ()=>showToast('Resumo copiado');
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopy(txt, done));
@@ -1163,6 +1175,40 @@ function fallbackCopy(txt, done){
   document.body.appendChild(ta); ta.select();
   try{ document.execCommand('copy'); done(); }catch(e){ showToast('Não consegui copiar'); }
   ta.remove();
+}
+// Aceita número com ou sem DDI, com ou sem formatação (parênteses, traço, espaço).
+// Sem DDI, assume Brasil (55) — é o público desse app.
+function normalizarTelefoneWhatsApp(tel){
+  const digitos = (tel||'').replace(/\D/g,'');
+  if(!digitos) return '';
+  if(digitos.startsWith('55') && (digitos.length===12 || digitos.length===13)) return digitos;
+  if(digitos.length===10 || digitos.length===11) return '55'+digitos; // sem DDI -> assume Brasil
+  return digitos; // já veio com outro DDI, ou formato inesperado — manda como está
+}
+function enviarOrcamentoWhatsApp(id){
+  const o = byId(state.orcamentos, id);
+  if(!o) return;
+  const txt = gerarTextoOrcamento(o);
+  const tel = normalizarTelefoneWhatsApp(o.cliente_telefone);
+  // Com telefone: abre a conversa direto com esse contato (wa.me/<numero>).
+  // Sem telefone: link "genérico" do WhatsApp, que deixa a pessoa escolher o contato na hora.
+  const url = tel
+    ? `https://wa.me/${tel}?text=${encodeURIComponent(txt)}`
+    : `https://api.whatsapp.com/send?text=${encodeURIComponent(txt)}`;
+  if(!tel) showToast('Sem WhatsApp salvo — escolha o contato na hora de enviar');
+  abrirLinkExterno(url);
+}
+// Abre um link externo usando um <a> "de verdade" (criado, clicado e removido na hora), em vez de
+// window.open() — alguns navegadores/webviews bloqueiam popups abertos via script mas continuam
+// respeitando o clique num link real com target="_blank".
+function abrirLinkExterno(url){
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 function toggleOrcamentoStatus(id){
@@ -1180,6 +1226,7 @@ function openOrcamentoBuilder(existingId, prefillProdutoId){
   const existing = existingId ? byId(state.orcamentos, existingId) : null;
   const draft = {
     cliente: existing?.cliente || '',
+    cliente_telefone: existing?.cliente_telefone || '',
     itens: existing ? existing.itens.slice() : [],
   };
   if(prefillProdutoId){
@@ -1195,6 +1242,7 @@ function openOrcamentoBuilder(existingId, prefillProdutoId){
   openModal(existing?'Editar orçamento':'Novo orçamento', `
     <div class="stack">
       <label class="field"><span>Cliente (opcional)</span><input class="ipt" id="oCliente" value="${draft.cliente}"></label>
+      <label class="field"><span>WhatsApp do cliente (opcional)</span><input class="ipt" id="oClienteTelefone" type="tel" inputmode="tel" placeholder="(11) 91234-5678" value="${draft.cliente_telefone}"></label>
 
       ${state.grupos.length ? `
       <div>
@@ -1388,12 +1436,13 @@ function openOrcamentoBuilder(existingId, prefillProdutoId){
 
     bd.querySelector('#oSalvar').addEventListener('click', ()=>{
       const cliente = bd.querySelector('#oCliente').value.trim();
+      const cliente_telefone = bd.querySelector('#oClienteTelefone').value.trim();
       const itensFinais = draft.itens.filter(it=>it.incluido!==false).map(({incluido, ...rest})=>rest);
       if(itensFinais.length===0){ showToast('Selecione pelo menos um item'); return; }
       const subtotal = itensFinais.reduce((s,it)=>s+it.preco_unit*it.quantidade,0);
       const kit = calcularDescontosKit(itensFinais, state.grupos, state.promocoes);
       const total = subtotal - kit.total;
-      const data = {cliente, itens: itensFinais, subtotal, desconto_kit_total: kit.total, desconto_kit_linhas: kit.linhas, total, status: existing?.status || 'rascunho', criado_em: existing?.criado_em || new Date().toISOString()};
+      const data = {cliente, cliente_telefone, itens: itensFinais, subtotal, desconto_kit_total: kit.total, desconto_kit_linhas: kit.linhas, total, status: existing?.status || 'rascunho', criado_em: existing?.criado_em || new Date().toISOString()};
       if(!state.dbOk){
         if(existing){ Object.assign(existing, data); } else { data.id=uid(); state.orcamentos=[data, ...state.orcamentos]; }
         closeModal(); state.tab='orcamentos'; renderNav(); renderMain(); showToast('Salvo (modo local)');
