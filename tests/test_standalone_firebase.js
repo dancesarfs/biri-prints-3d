@@ -126,7 +126,11 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   await page2.click('#tabsBottom button:has-text("Ajustes")'); // Ajustes
   await page2.waitForSelector('#importarBackupInput');
   await page2.setInputFiles('#importarBackupInput', backupPath);
-  await page2.waitForSelector('#importarBackupStatus:has-text("sucesso")', { timeout: 5000 });
+  // Timeout maior que o padrão de 5s: a importação dispara várias escritas no Firestore mock,
+  // cada uma notificando os listeners de onSnapshot num macrotask (setTimeout) — fiel ao Firestore
+  // de verdade, que nunca notifica de forma síncrona (ver fake_firebase.js) — e em runners de CI
+  // mais lentos (memória/CPU compartilhada) essa cadeia de re-renders pode passar de 5s.
+  await page2.waitForSelector('#importarBackupStatus:has-text("sucesso")', { timeout: 15000 });
   await page2.waitForTimeout(200);
 
   const impNomes = await page2.$$eval('#impList h3', els => els.map(e => e.textContent.trim()));
