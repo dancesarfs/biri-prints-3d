@@ -63,7 +63,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   const temMaterial = (await page.$$('#cMaterial option')).length > 0;
   if (!temMaterial) {
     // sem material cadastrado ainda no banco novo — cadastra um rapidinho
-    await page.click('#tabsBottom button:nth-child(4)');
+    await page.click('#tabsBottom button:has-text("Ajustes")');
     await page.waitForSelector('#btnAddMat');
     await page.click('#btnAddMat');
     await page.waitForSelector('#mNome');
@@ -123,7 +123,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   const backupPath = path.resolve(__dirname, '..', 'data', 'biri-prints-3d-backup.json');
   assert(fs.existsSync(backupPath), 'arquivo de backup real (biri-prints-3d-backup.json) deve existir pra esse teste rodar');
 
-  await page2.click('#tabsBottom button:nth-child(4)'); // Ajustes
+  await page2.click('#tabsBottom button:has-text("Ajustes")'); // Ajustes
   await page2.waitForSelector('#importarBackupInput');
   await page2.setInputFiles('#importarBackupInput', backupPath);
   await page2.waitForSelector('#importarBackupStatus:has-text("sucesso")', { timeout: 5000 });
@@ -138,7 +138,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   assert(nomesCatalogoImportado.length === 5, `depois de importar, o catálogo deve ter as 5 peças reais — obtido: ${nomesCatalogoImportado.length}`);
   assert(nomesCatalogoImportado.includes('cestinha de maçã'), `deve conter a peça real "cestinha de maçã" — obtido: ${nomesCatalogoImportado.join(', ')}`);
 
-  await page2.click('#tabsBottom button:nth-child(4)'); // Ajustes de novo, pra ver grupos/promoções
+  await page2.click('#tabsBottom button:has-text("Ajustes")'); // Ajustes de novo, pra ver grupos/promoções
   await page2.waitForSelector('#grupoList');
   const gruposTexto = await page2.textContent('#grupoList');
   const promosTexto = await page2.textContent('#promoList');
