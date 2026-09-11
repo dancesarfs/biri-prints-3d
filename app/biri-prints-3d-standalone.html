@@ -215,6 +215,7 @@
   .badge-warn{background:var(--warn-soft); color:var(--warn); border:1px solid var(--warn-soft-border);}
   .badge-accent{background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent-soft-border);}
   .badge-muted{background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border);}
+  .badge-pedido{background:var(--accent); color:var(--accent-ink); border:1px solid var(--accent);}
   .badge-danger{background:var(--danger-soft); color:var(--danger); border:1px solid var(--danger-soft);}
 
   .cards-grid{display:grid; grid-template-columns:1fr; gap:12px;}
@@ -1301,7 +1302,7 @@ const PEDIDO_STAGES = [
   {v:'pronto', label:'Pronto'},
   {v:'entregue', label:'Entregue'},
 ];
-const PEDIDO_BADGE_CLASS = {aberto:'badge-muted', em_producao:'badge-warn', pronto:'badge-accent', entregue:'badge-accent', cancelado:'badge-danger'};
+const PEDIDO_BADGE_CLASS = {aberto:'badge-muted', em_producao:'badge-warn', pronto:'badge-accent', entregue:'badge-pedido', cancelado:'badge-danger'};
 const PEDIDO_BADGE_LABEL = {aberto:'Aberto', em_producao:'Em produção', pronto:'Pronto', entregue:'Entregue', cancelado:'Cancelado'};
 const statusPedido = o => o.status_pedido || 'aberto';
 
@@ -1319,7 +1320,9 @@ function vendedorOptionsHtml(selecionadoId, {incluirTodos=false} = {}){
 // do passado, não só pra escolher um vendedor novo. Uma linha de filtros compartilhada pelas duas
 // abas (Orçamentos e Pedidos) — cada uma passa seus próprios ids de elemento/campos de state.
 function vendedorFiltroOptionsHtml(selecionado){
-  return vendedorOptionsHtml(selecionado, {incluirTodos:true});
+  let html = `<option value="todos" ${selecionado==='todos'?'selected':''}>Todos os vendedores</option>`;
+  html += state.vendedores.map(v=>`<option value="${v.id}" ${selecionado===v.id?'selected':''}>${v.nome}${v.ativo===false?' (inativo)':''}</option>`).join('');
+  return html;
 }
 function filtrosClienteVendedorHtml(idCliente, idVendedor, valCliente, valVendedor){
   return `
@@ -1394,7 +1397,7 @@ function renderOrcamentos(main){
         ${!encerrado ? `<button class="btn btn-sm btn-ghost" data-del-orc="${o.id}">Excluir</button>` : ''}
       </div>
       </div>` : '';
-      const badgeClass = encerrado ? 'badge-accent' : (status==='enviado' ? 'badge-accent' : 'badge-muted');
+      const badgeClass = encerrado ? 'badge-pedido' : (status==='enviado' ? 'badge-accent' : 'badge-muted');
       const badgeLabel = encerrado ? 'Encerrado' : (status==='enviado' ? 'Enviado' : 'Rascunho');
       return `<div class="card${expanded?' expanded':''}${encerrado?' encerrado':''}">
         <div class="row" style="cursor:pointer;" data-toggle-orc="${o.id}">

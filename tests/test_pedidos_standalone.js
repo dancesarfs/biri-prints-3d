@@ -121,6 +121,7 @@ async function criarOrcamento(page, cliente, { preco = '10' } = {}) {
   // ---------- 4. orçamento convertido fica "Encerrado" e travado na aba Orçamentos ----------
   const badgeDepois = await page.$eval('.card.expanded .badge', el => el.textContent.trim());
   assert(badgeDepois === 'Encerrado', `depois de converter, o selo deve virar "Encerrado" — obtido: ${badgeDepois}`);
+  assert((await page.$('.card.expanded .badge-pedido')) !== null, 'o selo "Encerrado" deve usar a classe .badge-pedido (destaque final)');
   assert((await page.$('.card.expanded [data-editar-orc]')) === null, 'orçamento encerrado não deve ter botão "Editar"');
   assert((await page.$('.card.expanded [data-del-orc]')) === null, 'orçamento encerrado não deve ter botão "Excluir"');
   assert((await page.$('.card.expanded [data-converter-pedido]')) === null, 'orçamento encerrado não deve ter mais "Converter em pedido"');
@@ -151,6 +152,7 @@ async function criarOrcamento(page, cliente, { preco = '10' } = {}) {
     const badgeSub = await page.$eval('.card.expanded .badge', el => el.textContent.trim());
     assert(badgeSub === label, `selecionar "${label}" deve mudar o selo — obtido: ${badgeSub}`);
   }
+  assert((await page.$('.card.expanded .badge-pedido')) !== null, 'selo "Entregue" deve usar a classe .badge-pedido (destaque final)');
 
   // ---------- 5c. pagamento é independente do sub-status ----------
   await page.click('.card.expanded [data-toggle-pago]');

@@ -83,6 +83,19 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   assert(opcoesVendedor.includes('Danilo'), `vendedor ativo (Danilo, o atual) deve continuar na lista — obtido: ${opcoesVendedor.join(', ')}`);
   await page.evaluate(() => { document.getElementById('modalBackdrop')?.remove(); });
 
+  // ---------- 3b. já no filtro por vendedor (Orçamentos/Pedidos), vendedor inativo CONTINUA
+  // aparecendo — esse filtro serve pra achar histórico, não só pra escolher alguém pra uma venda
+  // nova (diferente do seletor #oVendedor testado acima).
+  await abrirAbaStandalone(page, 'orcamentos');
+  await page.waitForSelector('#filtroOrcVendedor');
+  const opcoesFiltroOrc = await page.$eval('#filtroOrcVendedor', el => Array.from(el.options).map(o => o.textContent));
+  assert(opcoesFiltroOrc.some(t => t.includes('Marina')), `filtro de vendedor em Orçamentos deve continuar listando vendedor inativo (Marina) — obtido: ${opcoesFiltroOrc.join(', ')}`);
+
+  await abrirAbaStandalone(page, 'pedidos');
+  await page.waitForSelector('#filtroPedVendedor');
+  const opcoesFiltroPed = await page.$eval('#filtroPedVendedor', el => Array.from(el.options).map(o => o.textContent));
+  assert(opcoesFiltroPed.some(t => t.includes('Marina')), `filtro de vendedor em Pedidos deve continuar listando vendedor inativo (Marina) — obtido: ${opcoesFiltroPed.join(', ')}`);
+
   // ---------- 4. trocar de vendedor atual (badge no cabeçalho) ----------
   await page.click('#btnTrocarVendedor');
   await page.waitForSelector('[data-escolher-vendedor]');
