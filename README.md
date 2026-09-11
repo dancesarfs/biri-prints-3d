@@ -6,8 +6,8 @@ Sistema de precificação e gestão pra uma operação de impressão 3D (catálo
 
 ```
 app/
-  bancada-3d.html                  → versão principal, com todas as funcionalidades (usada até aqui como Artifact do Claude)
-  biri-prints-3d-standalone.html   → versão pra rodar fora do Claude (Firebase + login), mais atrasada em recursos
+  bancada-3d.html                  → LEGADO — não recebe mais funcionalidades novas, só registro histórico (era Artifact do Claude)
+  biri-prints-3d-standalone.html   → versão OFICIAL, usada no dia a dia (Firebase + login), roda fora do Claude
 data/
   biri-prints-3d-backup.json       → snapshot real dos dados (catálogo, impressora, material, kit, promoção)
 docs/
@@ -29,12 +29,12 @@ npm test
 
 Cada teste abre o HTML correspondente direto do disco (`file://`) com o Chromium do Playwright — não precisa de servidor rodando.
 
-## Duas versões, um só código-fonte a partir de agora
+## `biri-prints-3d-standalone.html` é a única versão oficial a partir de agora
 
-- **`app/bancada-3d.html`** é a versão completa — tudo que está documentado em `docs/bancada-3d-app.md` funciona nela. Usa um banco de dados que hoje só existe dentro do Claude (Firestore-like da própria plataforma), então rodando localmente/fora do Claude ela perde a persistência de dados.
-- **`app/biri-prints-3d-standalone.html`** usa Firebase de verdade (grátis) + tela de login, pensada pra hospedar no GitHub Pages e usar no dia a dia fora do Claude — mas está atrasada em relação à principal (falta WhatsApp, Clientes, Vendedores/Pedidos, validação de telefone/e-mail). Ver `docs/STANDALONE-SETUP.md`.
+Desde 2026-09-11, a `standalone` alcançou paridade funcional completa com a antiga versão principal (confirmado função por função e pela suíte de testes):
 
-Com o repositório agora no GitHub e acessível via Claude Code (aba "Code" do Claude Desktop, com acesso direto aos arquivos e terminal local), o caminho natural é ir trazendo a `standalone` pro nível da principal, até ela virar a única versão de verdade.
+- **`app/biri-prints-3d-standalone.html`** é a versão **oficial**, usada no dia a dia — usa Firebase de verdade (grátis) + tela de login, hospedada no GitHub Pages. Ver `docs/STANDALONE-SETUP.md`. **Toda evolução do sistema a partir de agora acontece nela.**
+- **`app/bancada-3d.html`** é **legado** — a versão que era hospedada como Artifact do Claude, usando um banco de dados que só existe dentro da plataforma (por isso rodando fora do Claude ela nunca teve persistência de dados de verdade). Não recebe mais funcionalidades novas; existe só como registro histórico de como o sistema evoluiu, documentado em `docs/bancada-3d-app.md`.
 
 ## Contexto
 
