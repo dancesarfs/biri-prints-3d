@@ -39,17 +39,24 @@
       this._docListeners = {}; // { "colecao/id": [cb,...] }
       this._colListeners = {}; // { colecao: [cb,...] }
     }
+    // Dispara os listeners num macrotask (setTimeout), não direto nem num microtask — o Firestore
+    // de verdade nunca notifica onSnapshot de forma síncrona dentro da própria chamada de
+    // add/update/set/delete. Sem esse adiamento, um .then() que fecha um modal e DEPOIS confia no
+    // onSnapshot pra re-renderizar (padrão usado em vários cadastros do app) via um cadastro que
+    // guarda "não perturbe um modal aberto" (fullRerender) perderia esse re-render: o listener
+    // disparava antes do closeModal(), via microtask, e via macrotask fica garantido que roda
+    // depois de toda a cadeia de microtasks do .then() já ter terminado.
     _fireDoc(colecao, id) {
       const key = colecao + '/' + id;
       const listeners = this._docListeners[key] || [];
       const exists = !!(this.store[colecao] && (id in this.store[colecao]));
       const data = exists ? this.store[colecao][id] : undefined;
-      listeners.forEach(cb => cb({ exists, data: () => data, id }));
+      setTimeout(() => listeners.forEach(cb => cb({ exists, data: () => data, id })), 0);
     }
     _fireCol(colecao) {
       const listeners = this._colListeners[colecao] || [];
       const docs = Object.entries(this.store[colecao] || {}).map(([id, data]) => ({ id, data: () => data }));
-      listeners.forEach(cb => cb({ docs }));
+      setTimeout(() => listeners.forEach(cb => cb({ docs })), 0);
     }
     doc(path) {
       const [colecao, id] = path.split('/');
