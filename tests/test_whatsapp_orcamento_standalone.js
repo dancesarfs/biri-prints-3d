@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
-const { passarPeloGateVendedorStandalone } = require('./test_helpers_standalone');
+const { passarPeloGateVendedorStandalone, abrirAbaStandalone } = require('./test_helpers_standalone');
 
 function assert(cond, msg) {
   if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; }
@@ -15,7 +15,7 @@ async function login(page) {
   await page.fill('#loginEmail', 'dono@teste.com');
   await page.fill('#loginSenha', 'senha123');
   await page.click('#loginBtn');
-  await page.waitForSelector('#tabsBottom button');
+  await page.waitForSelector('#sidebarNav [data-nav]');
 }
 
 (async () => {
@@ -79,7 +79,7 @@ async function login(page) {
   assert(idxSubtotal >= 0 && idxDesconto > idxSubtotal && idxTotal > idxDesconto, `ordem deve ser Subtotal -> Desconto -> Total — obtido: ${textoComDesconto}`);
 
   // ---------- 3. fluxo de UI: criar orçamento com telefone e enviar por WhatsApp ----------
-  await page.click('#tabsBottom button:nth-child(3)'); // Orçamentos
+  await abrirAbaStandalone(page, 'orcamentos');
   await page.waitForSelector('#fabNovoOrc');
   await page.click('#fabNovoOrc');
   await page.waitForSelector('#oCliente');

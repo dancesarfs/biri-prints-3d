@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
-const { passarPeloGateVendedorStandalone } = require('./test_helpers_standalone');
+const { passarPeloGateVendedorStandalone, abrirAbaStandalone, abrirNovoProdutoModalStandalone } = require('./test_helpers_standalone');
 
 function assert(cond, msg) {
   if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; }
@@ -44,7 +44,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   await page.fill('#loginEmail', 'dono@teste.com');
   await page.fill('#loginSenha', 'senha123');
   await page.click('#loginBtn');
-  await page.waitForSelector('#tabsBottom button');
+  await page.waitForSelector('#sidebarNav [data-nav]');
   const appVisivelDepois = await page.$eval('#appShell', el => getComputedStyle(el).display !== 'none');
   const loginEscondidoDepois = await page.$eval('#loginScreen', el => getComputedStyle(el).display === 'none');
   assert(appVisivelDepois, 'depois do login correto, o app deve aparecer');
@@ -55,20 +55,20 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   await passarPeloGateVendedorStandalone(page);
 
   // ---------- 4. catálogo começa vazio (projeto Firebase novo, sem dados ainda) ----------
-  await page.click('#tabsBottom button:nth-child(2)'); // Catálogo
+  await abrirAbaStandalone(page, 'catalogo');
   await page.waitForSelector('.empty, .item-card');
   const catalogoVazio = (await page.$$('.item-card')).length === 0;
   assert(catalogoVazio, 'com um banco de dados novo (sem backup importado ainda), o catálogo deve começar vazio');
 
   // ---------- 5. criar uma peça de verdade -> vira uma escrita real no Firestore (mock) ----------
-  await page.click('#tabsBottom button:nth-child(1)'); // Calcular
-  await page.waitForSelector('#cNome');
+  await abrirNovoProdutoModalStandalone(page);
   await page.fill('#cNome', 'Peça via Firebase');
   await page.selectOption('#cMaterial', { index: 0 }).catch(() => {}); // pode não ter material ainda
   const temMaterial = (await page.$$('#cMaterial option')).length > 0;
   if (!temMaterial) {
     // sem material cadastrado ainda no banco novo — cadastra um rapidinho
-    await page.click('#tabsBottom button:has-text("Ajustes")');
+    await page.evaluate(() => { document.getElementById('modalBackdrop')?.remove(); });
+    await abrirAbaStandalone(page, 'admin-materiais');
     await page.waitForSelector('#btnAddMat');
     await page.click('#btnAddMat');
     await page.waitForSelector('#mNome');
@@ -76,6 +76,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
     await page.fill('#mPreco', '100');
     await page.click('#mSave');
     await page.waitForTimeout(150);
+    await abrirAbaStandalone(page, 'admin-impressoras');
     await page.click('#btnAddImp');
     await page.waitForSelector('#iNome');
     await page.fill('#iNome', 'Impressora Teste');
@@ -84,8 +85,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
     await page.fill('#iVidaUtil', '2000');
     await page.click('#iSave');
     await page.waitForTimeout(150);
-    await page.click('#tabsBottom button:nth-child(1)');
-    await page.waitForSelector('#cNome');
+    await abrirNovoProdutoModalStandalone(page);
     await page.fill('#cNome', 'Peça via Firebase');
     await page.selectOption('#cMaterial', { index: 0 });
     await page.selectOption('#cImpressora', { index: 0 });
@@ -123,13 +123,13 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   await page2.fill('#loginEmail', 'dono@teste.com');
   await page2.fill('#loginSenha', 'senha123');
   await page2.click('#loginBtn');
-  await page2.waitForSelector('#tabsBottom button');
+  await page2.waitForSelector('#sidebarNav [data-nav]');
   await passarPeloGateVendedorStandalone(page2);
 
   const backupPath = path.resolve(__dirname, '..', 'data', 'biri-prints-3d-backup.json');
   assert(fs.existsSync(backupPath), 'arquivo de backup real (biri-prints-3d-backup.json) deve existir pra esse teste rodar');
 
-  await page2.click('#tabsBottom button:has-text("Ajustes")'); // Ajustes
+  await abrirAbaStandalone(page2, 'admin-parametros'); // "Importar backup" mora em Admin > Parâmetros de custo
   await page2.waitForSelector('#importarBackupInput');
   await page2.setInputFiles('#importarBackupInput', backupPath);
   // Sem timeout customizado (usa o padrão do Playwright, 30s) — igual a todo outro waitForSelector
@@ -140,20 +140,25 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   await page2.waitForSelector('#importarBackupStatus:has-text("sucesso")');
   await page2.waitForTimeout(200);
 
+  await abrirAbaStandalone(page2, 'admin-impressoras');
+  await page2.waitForSelector('#impList');
   const impNomes = await page2.$$eval('#impList h3', els => els.map(e => e.textContent.trim()));
-  assert(impNomes.includes('Bambu Lab A1'), `depois de importar o backup, a impressora real deve aparecer em Ajustes — obtido: ${impNomes.join(', ')}`);
+  assert(impNomes.includes('Bambu Lab A1'), `depois de importar o backup, a impressora real deve aparecer em Admin > Impressoras — obtido: ${impNomes.join(', ')}`);
 
-  await page2.click('#tabsBottom button:nth-child(2)'); // Catálogo
+  await abrirAbaStandalone(page2, 'catalogo');
   await page2.waitForSelector('.item-card');
   const nomesCatalogoImportado = await page2.$$eval('.item-card h3', els => els.map(e => e.textContent.trim()));
   assert(nomesCatalogoImportado.length === 5, `depois de importar, o catálogo deve ter as 5 peças reais — obtido: ${nomesCatalogoImportado.length}`);
   assert(nomesCatalogoImportado.includes('cestinha de maçã'), `deve conter a peça real "cestinha de maçã" — obtido: ${nomesCatalogoImportado.join(', ')}`);
 
-  await page2.click('#tabsBottom button:has-text("Ajustes")'); // Ajustes de novo, pra ver grupos/promoções
+  await abrirAbaStandalone(page2, 'admin-grupos');
   await page2.waitForSelector('#grupoList');
   const gruposTexto = await page2.textContent('#grupoList');
-  const promosTexto = await page2.textContent('#promoList');
   assert(gruposTexto.includes('Kit Professores'), `grupo real "Kit Professores" deve aparecer depois de importar — obtido: ${gruposTexto}`);
+
+  await abrirAbaStandalone(page2, 'admin-promocoes');
+  await page2.waitForSelector('#promoList');
+  const promosTexto = await page2.textContent('#promoList');
   assert(promosTexto.includes('Dia dos professores'), `promoção real "Dia dos professores" deve aparecer depois de importar — obtido: ${promosTexto}`);
 
   await browser2.close();

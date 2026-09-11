@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { abrirAbaStandalone } = require('./test_helpers_standalone');
 
 function assert(cond, msg) {
   if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; }
@@ -14,11 +15,11 @@ async function login(page) {
   await page.fill('#loginEmail', 'dono@teste.com');
   await page.fill('#loginSenha', 'senha123');
   await page.click('#loginBtn');
-  await page.waitForSelector('#tabsBottom button');
+  await page.waitForSelector('#sidebarNav [data-nav]');
 }
 
 async function cadastrarVendedor(page, nome) {
-  await page.click('#tabsBottom button:has-text("Ajustes")');
+  await abrirAbaStandalone(page, 'admin-vendedores');
   await page.waitForSelector('#btnAddVendedor');
   await page.click('#btnAddVendedor');
   await page.waitForSelector('#vNome');
@@ -36,7 +37,7 @@ async function trocarVendedorAtual(page, nome) {
 }
 
 async function criarOrcamento(page, cliente, { preco = '10' } = {}) {
-  await page.click('#tabsBottom button:has-text("Orçamentos")');
+  await abrirAbaStandalone(page, 'orcamentos');
   await page.waitForSelector('#fabNovoOrc');
   await page.click('#fabNovoOrc');
   await page.waitForSelector('#oCliente');
@@ -132,7 +133,7 @@ async function criarOrcamento(page, cliente, { preco = '10' } = {}) {
   assert((await page.$('#modalBackdrop')) === null, 'abrir um orçamento encerrado pelo editor direto não deve abrir o modal');
 
   // ---------- 5. o pedido aparece na aba Pedidos, com todos os controles ----------
-  await page.click('#tabsBottom button:has-text("Pedidos")');
+  await abrirAbaStandalone(page, 'pedidos');
   await page.waitForSelector('#pedList');
   await page.click('[data-toggle-orc]');
   await page.waitForSelector('[data-status-pedido]');
@@ -195,14 +196,14 @@ async function criarOrcamento(page, cliente, { preco = '10' } = {}) {
   await page.waitForTimeout(150);
   await page.evaluate(() => { document.getElementById('modalBackdrop')?.remove(); });
 
-  await page.click('#tabsBottom button:has-text("Orçamentos")');
+  await abrirAbaStandalone(page, 'orcamentos');
   await page.waitForTimeout(80);
   const totalJoao = (await page.$$('.card h3:has-text("João Comprador")')).length;
   assert(totalJoao === 2, `"Copiar orçamento" deve criar um orçamento NOVO, sem afetar o original — obtido: ${totalJoao} cards com "João Comprador"`);
 
   // ---------- 8. reverter o pedido -> some de Pedidos, volta a "Enviado" em Orçamentos ----------
   // Trocar de aba reseta state.expandedOrc — precisa expandir o card de novo.
-  await page.click('#tabsBottom button:has-text("Pedidos")');
+  await abrirAbaStandalone(page, 'pedidos');
   await page.waitForSelector('#pedList [data-toggle-orc]');
   await page.click('#pedList [data-toggle-orc]');
   await page.waitForSelector('.card.expanded [data-reverter-pedido]');

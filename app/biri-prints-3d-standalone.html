@@ -82,45 +82,79 @@
   @media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
 
   /* ---------- shell ---------- */
-  .shell{max-width:960px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column;}
+  .shell{max-width:1180px; margin:0 auto; min-height:100vh; display:flex;}
+  .app-content{flex:1; min-width:0; display:flex; flex-direction:column;}
   header.top{
     padding:18px 16px 14px;
     display:flex; align-items:center; gap:10px;
     border-bottom:1px solid var(--border);
   }
+  .hamburger{display:inline-flex; background:none; border:none; color:var(--text); padding:4px; margin-right:2px; flex:none;}
+  .hamburger svg{width:24px; height:24px;}
   .mark{width:30px; height:30px; flex:none; color:var(--accent);}
   header.top h1{font-size:1.15rem; letter-spacing:.02em; text-transform:uppercase; font-weight:600;}
   header.top .tagline{font-size:.72rem; color:var(--text-muted); letter-spacing:.03em; margin-top:1px;}
-  nav.tabs-desktop{display:none; margin-left:auto; gap:4px;}
   header.top #vendedorAtualBox{margin-left:auto;}
-  nav.tabs-desktop button{
-    background:none; border:1px solid transparent; color:var(--text-muted);
-    padding:8px 14px; border-radius:8px; font-size:.85rem; font-weight:600;
-    text-transform:uppercase; letter-spacing:.03em; display:flex; align-items:center; gap:7px;
-  }
-  nav.tabs-desktop button svg{width:16px; height:16px;}
-  nav.tabs-desktop button.active{background:var(--accent-soft); color:var(--accent); border-color:var(--accent-soft-border);}
 
-  main{flex:1; padding:16px 16px 96px; width:100%;}
+  main{flex:1; padding:16px 16px 40px; width:100%;}
   @media (min-width:720px){
     main{padding:24px 24px 40px;}
-    nav.tabs-desktop{display:flex;}
-    nav.bottom{display:none !important;}
+    .hamburger{display:none;}
   }
 
-  nav.bottom{
-    position:fixed; left:0; right:0; bottom:0; z-index:20;
-    display:flex; background:var(--surface); border-top:1px solid var(--border);
-    box-shadow:0 -2px 12px rgba(0,0,0,.06);
-    padding-bottom:env(safe-area-inset-bottom);
+  /* ---------- menu lateral (sidebar) ---------- */
+  .sidebar{
+    width:240px; flex:none; background:var(--surface); color:var(--text);
+    display:flex; flex-direction:column; border-right:1px solid var(--border);
+    transition:width .18s ease;
   }
-  nav.bottom button{
-    flex:1; background:none; border:none; color:var(--text-muted);
-    padding:9px 4px 8px; display:flex; flex-direction:column; align-items:center; gap:3px;
-    font-size:.64rem; font-weight:600; text-transform:uppercase; letter-spacing:.02em;
+  .sidebar-head{padding:12px 10px; border-bottom:1px solid var(--border);}
+  .sidebar-toggle{
+    display:flex; align-items:center; gap:10px; width:100%; background:none; border:none;
+    color:var(--text); font-size:.8rem; font-weight:600; padding:9px 8px; border-radius:8px;
   }
-  nav.bottom button svg{width:21px; height:21px;}
-  nav.bottom button.active{color:var(--accent);}
+  .sidebar-toggle:hover{background:var(--surface-2);}
+  .sidebar-toggle svg{width:20px; height:20px; flex:none;}
+  .sidebar-nav{flex:1; overflow-y:auto; padding:8px;}
+  .nav-item{
+    display:flex; align-items:center; gap:12px; width:100%; background:none; border:none;
+    color:var(--text); font-size:.85rem; padding:10px 10px; border-radius:8px; text-align:left;
+  }
+  .nav-item svg{width:19px; height:19px; flex:none; color:var(--text-muted);}
+  .nav-item span{flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .nav-item:hover{background:var(--surface-2);}
+  .nav-item.active{background:var(--accent-soft); color:var(--accent); font-weight:600;}
+  .nav-item.active svg{color:var(--accent);}
+  .nav-item .chevron{width:15px; height:15px; flex:none; margin-left:auto; color:var(--text-muted); transition:transform .15s ease;}
+  .nav-item .chevron.aberto{transform:rotate(180deg);}
+  .nav-children{padding-left:13px;}
+  .nav-item-child{padding-left:16px; font-size:.81rem;}
+
+  .sidebar.colapsado{width:64px;}
+  .sidebar.colapsado .sidebar-toggle span,
+  .sidebar.colapsado .nav-item span,
+  .sidebar.colapsado .nav-item .chevron,
+  .sidebar.colapsado .nav-children{display:none;}
+  .sidebar.colapsado .nav-item{justify-content:center;}
+
+  .sidebar-backdrop{display:none;}
+  @media (max-width:719.98px){
+    .sidebar{
+      position:fixed; top:0; left:0; bottom:0; z-index:60; width:82vw; max-width:300px;
+      transform:translateX(-100%); transition:transform .22s ease; box-shadow:var(--shadow);
+    }
+    .sidebar.mobile-aberto{transform:translateX(0);}
+    /* no celular, o menu é uma gaveta cheia — o modo "recolher pra ícones" do desktop não se aplica */
+    .sidebar.colapsado{width:82vw; max-width:300px;}
+    .sidebar.colapsado .sidebar-toggle span,
+    .sidebar.colapsado .nav-item span,
+    .sidebar.colapsado .nav-item .chevron,
+    .sidebar.colapsado .nav-children{display:revert;}
+    .sidebar.colapsado .nav-item{justify-content:flex-start;}
+    .sidebar-backdrop.visivel{
+      display:block; position:fixed; inset:0; background:rgba(10,12,14,.45); z-index:55;
+    }
+  }
 
   .section-label{
     font-family:'Oswald', sans-serif; font-size:.78rem; font-weight:600; letter-spacing:.06em;
@@ -132,6 +166,7 @@
   }
   .card.expanded{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft), var(--shadow);}
   .card.encerrado{background:var(--surface-2);}
+  #orcList, #pedList{gap:22px;}
   .stack{display:flex; flex-direction:column; gap:14px;}
   .row{display:flex; gap:10px; align-items:center;}
   .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
@@ -204,7 +239,7 @@
   .spec .v{font-family:'IBM Plex Mono'; font-size:1.1rem; font-weight:600; margin-top:2px;}
   .spec .note{font-size:.74rem; color:var(--text-muted); margin-top:5px; line-height:1.4;}
 
-  .modal-backdrop{position:fixed; inset:0; background:rgba(10,12,11,.5); z-index:50; display:flex; align-items:flex-end; justify-content:center;}
+  .modal-backdrop{position:fixed; inset:0; background:rgba(10,12,11,.5); z-index:70; display:flex; align-items:flex-end; justify-content:center;}
   @media (min-width:640px){ .modal-backdrop{align-items:center;} }
   .modal{
     background:var(--surface); width:100%; max-width:520px; max-height:88vh; overflow-y:auto;
@@ -218,18 +253,16 @@
   .list-line{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);}
   .list-line:last-child{border-bottom:none;}
   .toast{
-    position:fixed; bottom:78px; left:50%; transform:translateX(-50%);
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
     background:var(--text); color:var(--bg); padding:9px 16px; border-radius:99px;
     font-size:.82rem; font-weight:600; z-index:80; box-shadow:var(--shadow);
   }
-  @media (min-width:720px){ .toast{bottom:24px;} }
   .fab{
-    position:fixed; right:18px; bottom:88px; z-index:15;
+    position:fixed; right:18px; bottom:28px; z-index:15;
     width:52px; height:52px; border-radius:50%; background:var(--accent); color:var(--accent-ink);
     border:none; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow);
   }
   .fab svg{width:24px; height:24px;}
-  @media (min-width:720px){ .fab{bottom:28px;} }
   .offline-banner{
     background:var(--warn-soft); border:1px solid var(--warn-soft-border); color:var(--warn);
     border-radius:10px; padding:9px 12px; font-size:.78rem; margin-bottom:14px;
@@ -267,18 +300,26 @@
 </div>
 
 <div class="shell" id="appShell" style="display:none;">
-  <header class="top">
-    <svg class="mark" viewBox="0 0 32 32" fill="none"><path d="M6 24 L16 4 L26 24" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 24h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M16 4v8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-    <div>
-      <h1>Biri Prints 3D</h1>
-      <div class="tagline">Precificação 3D</div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <button class="sidebar-toggle" id="sidebarToggle"><svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Recolher menu</span></button>
     </div>
-    <nav class="tabs-desktop" id="tabsDesktop"></nav>
-    <div id="vendedorAtualBox"></div>
-    <button class="btn btn-sm btn-ghost" id="btnLogout" title="Sair">Sair</button>
-  </header>
-  <main id="main"></main>
-  <nav class="bottom" id="tabsBottom"></nav>
+    <nav class="sidebar-nav" id="sidebarNav"></nav>
+  </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <div class="app-content">
+    <header class="top">
+      <button class="hamburger" id="btnAbrirMenu" aria-label="Abrir menu"><svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <svg class="mark" viewBox="0 0 32 32" fill="none"><path d="M6 24 L16 4 L26 24" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 24h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M16 4v8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <div>
+        <h1>Biri Prints 3D</h1>
+        <div class="tagline">Precificação 3D</div>
+      </div>
+      <div id="vendedorAtualBox"></div>
+      <button class="btn btn-sm btn-ghost" id="btnLogout" title="Sair">Sair</button>
+    </header>
+    <main id="main"></main>
+  </div>
 </div>
 
 <!--
@@ -310,14 +351,25 @@ const FIREBASE_CONFIG = {
 };
 
 /* ---------------- constants ---------------- */
-const TABS = [
-  {id:'calc', label:'Calcular', icon: iconCalc},
+// Uma única árvore de navegação serve o desktop (sidebar fixa, recolhível a uma "trilha" só de
+// ícones) e o celular (a mesma lista, como gaveta full-screen aberta pelo botão ☰ no cabeçalho).
+// "Admin" é o único item com submenu — os demais navegam direto.
+const NAV_TREE = [
   {id:'catalogo', label:'Catálogo', icon: iconLayers},
   {id:'orcamentos', label:'Orçamentos', icon: iconReceipt},
   {id:'pedidos', label:'Pedidos', icon: iconPedido},
+  {id:'admin', label:'Admin', icon: iconGear, children:[
+    {id:'admin-parametros', label:'Parâmetros de custo', icon: iconSliders},
+    {id:'admin-impressoras', label:'Impressoras', icon: iconPrinter},
+    {id:'admin-materiais', label:'Materiais', icon: iconMaterial},
+    {id:'admin-grupos', label:'Grupos de kit', icon: iconGrupo},
+    {id:'admin-promocoes', label:'Promoções sazonais', icon: iconPromo},
+    {id:'admin-vendedores', label:'Vendedores', icon: iconVendedor},
+  ]},
   {id:'clientes', label:'Clientes', icon: iconClientes},
-  {id:'config', label:'Ajustes', icon: iconGear},
 ];
+// ids de todas as sub-páginas dentro de "Admin" (usado pra saber se a aba atual pertence ao grupo).
+const ADMIN_TAB_IDS = NAV_TREE.find(i=>i.id==='admin').children.map(c=>c.id);
 
 const DEFAULT_CONFIG = {
   tarifa_kwh: 0.94375,
@@ -350,8 +402,11 @@ const state = {
   clientes: [],
   vendedores: [],
   vendedorAtualId: null,
-  tab: 'calc',
+  tab: 'catalogo',
   expandedOrc: null,
+  sidebarColapsado: false,
+  adminExpandido: false,
+  menuMobileAberto: false,
   filtroOrcStatus: 'todos',
   filtroOrcCliente: '',
   filtroOrcVendedor: 'todos',
@@ -361,7 +416,6 @@ const state = {
 };
 
 /* ---------------- icons (inline, stroke-based) ---------------- */
-function iconCalc(){return '<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M16 15h0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';}
 function iconLayers(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3 3 8l9 5 9-5-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 13l9 5 9-5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';}
 function iconReceipt(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8h6M9 12h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';}
 function iconGear(){return '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';}
@@ -370,6 +424,13 @@ function iconEmptyBox(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M3
 function iconClientes(){return '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c1-3.8 4-5.6 7-5.6s6 1.8 7 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';}
 function iconPedido(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M3 8l9-5 9 5-9 5-9-5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M3 8v9l9 5 9-5V8" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12.5l2.2 2.2L16 10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';}
 function iconVendedor(){return '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c1-3.8 4-5.6 7-5.6s6 1.8 7 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 4.2l1.5 1.5M19.5 4.2L18 5.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';}
+// ícones dos submenus de Admin + controles do menu lateral
+function iconSliders(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h13M21 18h0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="6" r="2" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="12" r="2" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="18" r="2" stroke="currentColor" stroke-width="1.8"/></svg>';}
+function iconPrinter(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M6 9V3h12v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><rect x="4" y="9" width="16" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><path d="M6 17v4h12v-4" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';}
+function iconMaterial(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7l9 5 9-5-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 7v10l9 5 9-5V7" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';}
+function iconGrupo(){return '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/></svg>';}
+function iconPromo(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2 21 11l-9 9-9-9 4-9h5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="9" cy="6" r="1.2" fill="currentColor"/></svg>';}
+function iconChevronDown(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';}
 
 /* ---------------- helpers ---------------- */
 const fmtBRL = n => (isFinite(n)?n:0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
@@ -599,15 +660,71 @@ function openModal(title, bodyHtml, onMount){
 }
 function closeModal(){ const el=document.getElementById('modalBackdrop'); if(el) el.remove(); }
 
-/* ---------------- nav render ---------------- */
+/* ---------------- menu lateral (sidebar) ---------------- */
+function emGrupoAdmin(tabId){ return ADMIN_TAB_IDS.includes(tabId); }
+
+function irParaAba(tabId){
+  state.tab = tabId;
+  state.expandedOrc = null;
+  state.menuMobileAberto = false; // navegar fecha a gaveta no celular
+  renderNav();
+  renderMain();
+}
+
 function renderNav(){
-  const mk = (btnClass) => TABS.map(t=>`<button class="${btnClass} ${state.tab===t.id?'active':''}" data-tab="${t.id}">${t.icon()}<span>${t.label}</span></button>`).join('');
-  document.getElementById('tabsDesktop').innerHTML = mk('');
-  document.getElementById('tabsBottom').innerHTML = mk('');
-  document.querySelectorAll('[data-tab]').forEach(b=>{
-    b.addEventListener('click', ()=>{ state.tab=b.dataset.tab; state.expandedOrc=null; renderNav(); renderMain(); });
+  const nav = document.getElementById('sidebarNav');
+  const adminAtivo = emGrupoAdmin(state.tab);
+  const adminAberto = state.adminExpandido || adminAtivo;
+  nav.innerHTML = NAV_TREE.map(item=>{
+    if(item.children){
+      return `<div class="nav-group">
+        <button class="nav-item ${adminAtivo && !adminAberto ? 'active':''}" data-nav-group="${item.id}">
+          ${item.icon()}<span>${item.label}</span>
+          <span class="chevron ${adminAberto?'aberto':''}">${iconChevronDown()}</span>
+        </button>
+        <div class="nav-children" ${adminAberto?'':'style="display:none;"'}>
+          ${item.children.map(c=>`<button class="nav-item nav-item-child ${state.tab===c.id?'active':''}" data-nav="${c.id}">${c.icon()}<span>${c.label}</span></button>`).join('')}
+        </div>
+      </div>`;
+    }
+    return `<button class="nav-item ${state.tab===item.id?'active':''}" data-nav="${item.id}">${item.icon()}<span>${item.label}</span></button>`;
+  }).join('');
+
+  nav.querySelectorAll('[data-nav]').forEach(b=>{
+    b.addEventListener('click', ()=> irParaAba(b.dataset.nav));
   });
+  nav.querySelectorAll('[data-nav-group]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      // Se o menu estiver recolhido a ícones (só existe no desktop), primeiro reabre por
+      // completo — não dá pra mostrar os filhos indentados numa trilha estreita.
+      if(state.sidebarColapsado){ state.sidebarColapsado=false; try{ localStorage.setItem('sidebarColapsado','0'); }catch(e){} }
+      state.adminExpandido = !state.adminExpandido;
+      renderNav();
+    });
+  });
+
+  const sidebarEl = document.getElementById('sidebar');
+  sidebarEl.classList.toggle('colapsado', state.sidebarColapsado);
+  sidebarEl.classList.toggle('mobile-aberto', state.menuMobileAberto);
+  document.getElementById('sidebarBackdrop').classList.toggle('visivel', state.menuMobileAberto);
+
   renderVendedorAtualBadge();
+}
+// Liga os controles "fixos" do menu (botão de recolher, hambúrguer do cabeçalho, fundo da gaveta)
+// — diferente dos itens de navegação (recriados a cada renderNav), esses elementos nunca são
+// substituídos, então essa função roda uma única vez, no boot.
+function wireSidebarChrome(){
+  document.getElementById('sidebarToggle').addEventListener('click', ()=>{
+    if(window.innerWidth < 720){ state.menuMobileAberto = false; } // no celular, "recolher" = fechar a gaveta
+    else {
+      state.sidebarColapsado = !state.sidebarColapsado;
+      try{ localStorage.setItem('sidebarColapsado', state.sidebarColapsado?'1':'0'); }catch(e){}
+    }
+    renderNav();
+  });
+  document.getElementById('btnAbrirMenu').addEventListener('click', ()=>{ state.menuMobileAberto = true; renderNav(); });
+  document.getElementById('sidebarBackdrop').addEventListener('click', ()=>{ state.menuMobileAberto = false; renderNav(); });
+  try{ state.sidebarColapsado = localStorage.getItem('sidebarColapsado') === '1'; }catch(e){}
 }
 
 /* ---------------- main router ---------------- */
@@ -617,12 +734,16 @@ function renderMain(){
   // trocar de aba deixaria o "+" da aba anterior sobrando por cima do conteúdo novo. Cada aba
   // que quiser um botão próprio adiciona o dela de novo logo em seguida (função addFab).
   document.querySelectorAll('.fab').forEach(el=>el.remove());
-  if(state.tab==='calc') return renderCalc(main);
   if(state.tab==='catalogo') return renderCatalogo(main);
   if(state.tab==='orcamentos') return renderOrcamentos(main);
   if(state.tab==='pedidos') return renderPedidos(main);
+  if(state.tab==='admin-parametros') return renderAdminParametros(main);
+  if(state.tab==='admin-impressoras') return renderAdminImpressoras(main);
+  if(state.tab==='admin-materiais') return renderAdminMateriais(main);
+  if(state.tab==='admin-grupos') return renderAdminGrupos(main);
+  if(state.tab==='admin-promocoes') return renderAdminPromocoes(main);
+  if(state.tab==='admin-vendedores') return renderAdminVendedores(main);
   if(state.tab==='clientes') return renderClientes(main);
-  if(state.tab==='config') return renderConfig(main);
 }
 function addFab(id, onClick){
   const fab = document.createElement('button');
@@ -635,12 +756,16 @@ function offlineBanner(){
   return state.dbOk ? '' : `<div class="offline-banner">Sem conexão com o armazenamento em nuvem agora — funcionando só como calculadora, nada será salvo. Recarregue a página para tentar de novo.</div>`;
 }
 
-/* ================= CALCULADORA ================= */
-function renderCalc(main){
-  const cfg = state.config;
-  main.innerHTML = `
+/* ================= ADICIONAR PRODUTO (modal aberto a partir do Catálogo) ================= */
+// Antes era uma aba de topo própria ("Calcular"). Igual à versão principal: Produto e Catálogo
+// são coisas complementares, então isso virou um modal aberto pelo botão "Adicionar Produto" na
+// própria aba Catálogo — mesmo padrão de navegação dos outros cadastros (material, impressora,
+// grupo, promoção, vendedor). As funções auxiliares (populateMaterialSelect, readCalcDraft,
+// recomputeCalc, saveCurrentCalcToCatalogo) continuam usando os mesmos ids (cNome, cMaterial
+// etc.) — como só um modal fica aberto por vez, funciona igual a antes.
+function abrirNovoProduto(){
+  openModal('Adicionar produto', `
     ${offlineBanner()}
-    <p class="section-label">Nova peça</p>
     <div class="stack">
       <div class="card stack">
         <label class="field"><span>Nome da peça<span class="req">*</span></span><input class="ipt" id="cNome" placeholder="Ex.: Suporte de fone"></label>
@@ -679,33 +804,33 @@ function renderCalc(main){
 
       <button class="btn btn-primary btn-block" id="btnSalvarCatalogo">Salvar no catálogo</button>
     </div>
-  `;
+  `, ()=>{
+    populateMaterialSelect();
+    populateImpressoraSelect();
+    ['cNome','cGram','cTempoH','cTempoM','cEmb','cPrecoFinal'].forEach(id=>{
+      document.getElementById(id).addEventListener('input', recomputeCalc);
+    });
+    document.getElementById('cMaterial').addEventListener('change', recomputeCalc);
+    document.getElementById('cImpressora').addEventListener('change', recomputeCalc);
+    document.getElementById('btnSalvarCatalogo').addEventListener('click', saveCurrentCalcToCatalogo);
 
-  populateMaterialSelect();
-  populateImpressoraSelect();
-  ['cNome','cGram','cTempoH','cTempoM','cEmb','cPrecoFinal'].forEach(id=>{
-    document.getElementById(id).addEventListener('input', recomputeCalc);
-  });
-  document.getElementById('cMaterial').addEventListener('change', recomputeCalc);
-  document.getElementById('cImpressora').addEventListener('change', recomputeCalc);
-  document.getElementById('btnSalvarCatalogo').addEventListener('click', saveCurrentCalcToCatalogo);
-
-  const cChk = document.getElementById('cUsarAjuste');
-  cChk.addEventListener('change', ()=>{
-    document.getElementById('cAjusteBox').style.display = cChk.checked ? 'flex' : 'none';
-    if(cChk.checked){
+    const cChk = document.getElementById('cUsarAjuste');
+    cChk.addEventListener('change', ()=>{
+      document.getElementById('cAjusteBox').style.display = cChk.checked ? 'flex' : 'none';
+      if(cChk.checked){
+        const r = calcPreco(readCalcDraft(), state.config);
+        document.getElementById('cPrecoFinal').value = r.precoFinal.toFixed(2);
+      }
+      recomputeCalc();
+    });
+    document.getElementById('cReset').addEventListener('click', ()=>{
       const r = calcPreco(readCalcDraft(), state.config);
       document.getElementById('cPrecoFinal').value = r.precoFinal.toFixed(2);
-    }
-    recomputeCalc();
-  });
-  document.getElementById('cReset').addEventListener('click', ()=>{
-    const r = calcPreco(readCalcDraft(), state.config);
-    document.getElementById('cPrecoFinal').value = r.precoFinal.toFixed(2);
-    recomputeCalc();
-  });
+      recomputeCalc();
+    });
 
-  recomputeCalc();
+    recomputeCalc();
+  });
 }
 
 function populateMaterialSelect(){
@@ -778,12 +903,12 @@ function recomputeCalc(){
 
 function saveCurrentCalcToCatalogo(){
   const draft = readCalcDraft();
-  const scope = document.getElementById('main');
+  const scope = document.getElementById('modalBackdrop') || document.getElementById('main');
   clearFieldErrors(scope);
   let temErro = false;
   if(!draft.nome){ markFieldError(document.getElementById('cNome'), 'Dá um nome pra peça'); temErro=true; }
-  if(!draft.material_id){ markFieldError(document.getElementById('cMaterial'), 'Cadastre um material em Ajustes primeiro'); temErro=true; }
-  if(!draft.impressora_id){ markFieldError(document.getElementById('cImpressora'), 'Cadastre uma impressora em Ajustes primeiro'); temErro=true; }
+  if(!draft.material_id){ markFieldError(document.getElementById('cMaterial'), 'Cadastre um material em Admin primeiro'); temErro=true; }
+  if(!draft.impressora_id){ markFieldError(document.getElementById('cImpressora'), 'Cadastre uma impressora em Admin primeiro'); temErro=true; }
   if(!(Number(draft.gramatura)>0)){ markFieldError(document.getElementById('cGram'), 'Informe a gramatura da peça'); temErro=true; }
   if(!(Number(draft.tempo_horas)>0)){ markFieldErrorPair(document.getElementById('cTempoH'), document.getElementById('cTempoM'), 'Informe o tempo de máquina'); temErro=true; }
   if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(scope); return; }
@@ -807,13 +932,14 @@ function saveCurrentCalcToCatalogo(){
   if(!state.dbOk){
     data.id = uid();
     state.produtos = [data, ...state.produtos];
+    closeModal();
+    if(state.tab==='catalogo') renderMain();
     showToast('Salvo (modo local, sem nuvem)');
-    state.tab='catalogo'; renderNav(); renderMain();
     return;
   }
   state.db.collection('produtos').add(data).then(()=>{
+    closeModal();
     showToast('Salvo no catálogo');
-    state.tab='catalogo'; renderNav(); renderMain();
   }).catch(()=> showToast('Não deu pra salvar agora, tenta de novo'));
 }
 
@@ -821,16 +947,20 @@ function saveCurrentCalcToCatalogo(){
 function renderCatalogo(main){
   const produtos = state.produtos;
   if(produtos.length===0){
-    main.innerHTML = `${offlineBanner()}<div class="empty">${iconEmptyBox()}<h3>Nenhuma peça salva ainda</h3><p>Calcule uma peça e clique em "Salvar no catálogo".</p><button class="btn btn-primary" id="goCalc">Ir para Calcular</button></div>`;
-    document.getElementById('goCalc').addEventListener('click', ()=>{ state.tab='calc'; renderNav(); renderMain(); });
+    main.innerHTML = `${offlineBanner()}<div class="empty">${iconEmptyBox()}<h3>Nenhuma peça salva ainda</h3><p>Clique em "Adicionar Produto" pra calcular o preço e salvar sua primeira peça no catálogo.</p><button class="btn btn-primary" id="goCalc">Adicionar Produto</button></div>`;
+    document.getElementById('goCalc').addEventListener('click', abrirNovoProduto);
     return;
   }
   main.innerHTML = `${offlineBanner()}
-    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+    <div class="row" style="justify-content:space-between; margin-bottom:2px; gap:8px; flex-wrap:wrap;">
       <p class="section-label" style="margin-bottom:0;">${produtos.length} peça${produtos.length>1?'s':''} no catálogo</p>
-      <button class="btn btn-sm" id="btnCompartilharCatalogo">Compartilhar lista</button>
+      <div class="row" style="gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-sm btn-primary" id="btnAdicionarProduto">Adicionar Produto</button>
+        <button class="btn btn-sm" id="btnCompartilharCatalogo">Compartilhar lista</button>
+      </div>
     </div>
     <div class="cards-grid" id="catGrid" style="margin-top:12px;"></div>`;
+  document.getElementById('btnAdicionarProduto').addEventListener('click', abrirNovoProduto);
   document.getElementById('btnCompartilharCatalogo').addEventListener('click', openCompartilharCatalogo);
   const grid = document.getElementById('catGrid');
   grid.innerHTML = produtos.map(p=>{
@@ -1085,7 +1215,7 @@ function openProdutoEditor(id, duplicar){
     bd.querySelector('#epAddPerfil').addEventListener('click', ()=>{
       const usados = perfis.map(p=>p.impressora_id).concat([bd.querySelector('#epImpressora').value]);
       const disponivel = state.impressoras.find(imp=> !usados.includes(imp.id));
-      if(!disponivel){ showToast('Cadastre outra impressora em Ajustes pra adicionar um perfil'); return; }
+      if(!disponivel){ showToast('Cadastre outra impressora em Admin pra adicionar um perfil'); return; }
       perfis.push({impressora_id: disponivel.id, gramatura: existing.gramatura||0, tempo_horas: existing.tempo_horas||0});
       renderPerfis();
     });
@@ -1099,8 +1229,8 @@ function openProdutoEditor(id, duplicar){
       const h = Number(bd.querySelector('#epTempoH').value)||0, m = Number(bd.querySelector('#epTempoM').value)||0;
       let temErro = false;
       if(!nome){ markFieldError(bd.querySelector('#epNome'), 'Dá um nome pra peça'); temErro=true; }
-      if(!material_id){ markFieldError(bd.querySelector('#epMaterial'), 'Cadastre um material em Ajustes primeiro'); temErro=true; }
-      if(!impressora_id){ markFieldError(bd.querySelector('#epImpressora'), 'Cadastre uma impressora em Ajustes primeiro'); temErro=true; }
+      if(!material_id){ markFieldError(bd.querySelector('#epMaterial'), 'Cadastre um material em Admin primeiro'); temErro=true; }
+      if(!impressora_id){ markFieldError(bd.querySelector('#epImpressora'), 'Cadastre uma impressora em Admin primeiro'); temErro=true; }
       if(!(gramatura>0)){ markFieldError(bd.querySelector('#epGram'), 'Informe a gramatura da peça'); temErro=true; }
       if(!((h + m/60)>0)){ markFieldErrorPair(bd.querySelector('#epTempoH'), bd.querySelector('#epTempoM'), 'Informe o tempo de máquina'); temErro=true; }
       if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(bd); return; }
@@ -1850,11 +1980,11 @@ function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
       if(!existing) data.orcamento_numero = proximoNumero('orcamento_numero');
       if(!state.dbOk){
         if(existing){ Object.assign(existing, data); } else { data.id=uid(); state.orcamentos=[data, ...state.orcamentos]; }
-        closeModal(); state.tab='orcamentos'; state.expandedOrc=null; renderNav(); renderMain(); showToast('Salvo (modo local)');
+        closeModal(); irParaAba('orcamentos'); showToast('Salvo (modo local)');
         return;
       }
       const p = existing ? state.db.collection('orcamentos').doc(existing.id).update(data) : state.db.collection('orcamentos').add(data);
-      p.then(()=>{ closeModal(); state.tab='orcamentos'; state.expandedOrc=null; renderNav(); renderMain(); showToast('Orçamento salvo'); })
+      p.then(()=>{ closeModal(); irParaAba('orcamentos'); showToast('Orçamento salvo'); })
        .catch(()=> showToast('Não deu pra salvar agora'));
     });
   });
@@ -2084,7 +2214,7 @@ const CONFIG_META = [
   {k:'preco_minimo', label:'Preço mínimo', unit:'R$/peça', step:'0.5', note:'Piso: o preço final nunca fica abaixo disso.'},
 ];
 
-function renderConfig(main){
+function renderAdminParametros(main){
   const cfg = state.config;
   main.innerHTML = `
     ${offlineBanner()}
@@ -2100,38 +2230,6 @@ function renderConfig(main){
       <button class="btn btn-sm" id="btnEditCfg">Editar</button>
     </div>
     <div class="config-grid" id="cfgGrid" style="margin-bottom:22px;"></div>
-
-    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
-      <p class="section-label" style="margin-bottom:0;">Impressoras cadastradas</p>
-      <button class="btn btn-sm" id="btnAddImp">+ Impressora</button>
-    </div>
-    <div class="stack" id="impList" style="margin-bottom:22px;"></div>
-
-    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
-      <p class="section-label" style="margin-bottom:0;">Materiais cadastrados</p>
-      <button class="btn btn-sm" id="btnAddMat">+ Material</button>
-    </div>
-    <div class="stack" id="matList" style="margin-bottom:22px;"></div>
-
-    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
-      <p class="section-label" style="margin-bottom:0;">Grupos de kit</p>
-      <button class="btn btn-sm" id="btnAddGrupo">+ Grupo</button>
-    </div>
-    <p style="font-size:.78rem;color:var(--text-muted);margin:0 0 10px;">Produtos que "convivem" entre si — a base para o sistema detectar kits num orçamento.</p>
-    <div class="stack" id="grupoList" style="margin-bottom:22px;"></div>
-
-    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
-      <p class="section-label" style="margin-bottom:0;">Promoções sazonais</p>
-      <button class="btn btn-sm" id="btnAddPromo">+ Promoção</button>
-    </div>
-    <p style="font-size:.78rem;color:var(--text-muted);margin:0 0 10px;">Cada promoção liga um grupo a um período e a faixas de desconto por nº de produtos distintos no kit.</p>
-    <div class="stack" id="promoList" style="margin-bottom:22px;"></div>
-
-    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
-      <p class="section-label" style="margin-bottom:0;">Vendedores cadastrados</p>
-      <button class="btn btn-sm" id="btnAddVendedor">+ Vendedor</button>
-    </div>
-    <div class="stack" id="vendedorList"></div>
   `;
   const isCurrencyUnit = u => u==='R$' || u==='R$/hora' || u==='R$/peça';
   document.getElementById('cfgGrid').innerHTML = CONFIG_META.map(m=>{
@@ -2146,6 +2244,45 @@ function renderConfig(main){
     return `<div class="spec"><div class="k">${m.label}</div><div class="v">${val}</div><div class="note">${m.note}</div></div>`;
   }).join('');
 
+  document.getElementById('importarBackupInput').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    // Guarda a mensagem em variáveis de módulo (importarBackupStatusMsg/Cor), não só no DOM: cada
+    // escrita no banco durante a importação dispara um onSnapshot que re-renderiza esta tela do
+    // zero (renderAdminParametros recria a página inteira, inclusive um <p id="importarBackupStatus">
+    // vazio) — sem isso, uma dessas atualizações chegando depois de "Importando…"/"sucesso" ser
+    // exibido apagava a mensagem de volta pro vazio. Reconsultar o elemento a cada chamada
+    // continua necessário: o elemento capturado no início ficaria "órfão" (fora do DOM) depois de
+    // qualquer um desses re-renders.
+    const setStatus = (msg, cor)=>{
+      importarBackupStatusMsg = msg; importarBackupStatusCor = cor;
+      const el = document.getElementById('importarBackupStatus');
+      if(el){ el.textContent = msg; el.style.color = cor; }
+    };
+    setStatus('Importando…', 'var(--text-muted)');
+    try{
+      const texto = await file.text();
+      const backup = JSON.parse(texto);
+      await importarBackupJSON(backup);
+      setStatus('Backup importado com sucesso!', 'var(--accent)');
+    }catch(err){
+      setStatus('Não deu pra importar: ' + err.message, 'var(--danger)');
+    }
+    e.target.value = '';
+  });
+
+  document.getElementById('btnEditCfg').addEventListener('click', openConfigEditor);
+}
+
+function renderAdminImpressoras(main){
+  main.innerHTML = `
+    ${offlineBanner()}
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">Impressoras cadastradas</p>
+      <button class="btn btn-sm" id="btnAddImp">+ Impressora</button>
+    </div>
+    <div class="stack" id="impList"></div>
+  `;
   const impList = document.getElementById('impList');
   impList.innerHTML = state.impressoras.length ? state.impressoras.map(imp=>`
     <div class="item-card">
@@ -2160,6 +2297,20 @@ function renderConfig(main){
       </div>
     </div>`).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhuma impressora cadastrada.</p>`;
 
+  document.getElementById('btnAddImp').addEventListener('click', ()=>openImpressoraEditor(null));
+  impList.querySelectorAll('[data-edit-imp]').forEach(b=> b.addEventListener('click', ()=>openImpressoraEditor(b.dataset.editImp)));
+  impList.querySelectorAll('[data-del-imp]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteImpressora(b.dataset.delImp))));
+}
+
+function renderAdminMateriais(main){
+  main.innerHTML = `
+    ${offlineBanner()}
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">Materiais cadastrados</p>
+      <button class="btn btn-sm" id="btnAddMat">+ Material</button>
+    </div>
+    <div class="stack" id="matList"></div>
+  `;
   const matList = document.getElementById('matList');
   matList.innerHTML = state.materiais.length ? state.materiais.map(m=>`
     <div class="item-card">
@@ -2173,6 +2324,21 @@ function renderConfig(main){
       </div>
     </div>`).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum material cadastrado.</p>`;
 
+  document.getElementById('btnAddMat').addEventListener('click', ()=>openMaterialEditor(null));
+  matList.querySelectorAll('[data-edit-mat]').forEach(b=> b.addEventListener('click', ()=>openMaterialEditor(b.dataset.editMat)));
+  matList.querySelectorAll('[data-del-mat]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteMaterial(b.dataset.delMat))));
+}
+
+function renderAdminGrupos(main){
+  main.innerHTML = `
+    ${offlineBanner()}
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">Grupos de kit</p>
+      <button class="btn btn-sm" id="btnAddGrupo">+ Grupo</button>
+    </div>
+    <p style="font-size:.78rem;color:var(--text-muted);margin:0 0 10px;">Produtos que "convivem" entre si — a base para o sistema detectar kits num orçamento.</p>
+    <div class="stack" id="grupoList"></div>
+  `;
   const grupoList = document.getElementById('grupoList');
   grupoList.innerHTML = state.grupos.length ? state.grupos.map(g=>{
     const nomes = (g.produto_ids||[]).map(pid=> byId(state.produtos, pid)?.nome || '(peça removida)').join(', ');
@@ -2187,6 +2353,21 @@ function renderConfig(main){
     </div>`;
   }).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum grupo cadastrado.</p>`;
 
+  document.getElementById('btnAddGrupo').addEventListener('click', ()=>openGrupoEditor(null));
+  grupoList.querySelectorAll('[data-edit-grupo]').forEach(b=> b.addEventListener('click', ()=>openGrupoEditor(b.dataset.editGrupo)));
+  grupoList.querySelectorAll('[data-del-grupo]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteGrupo(b.dataset.delGrupo))));
+}
+
+function renderAdminPromocoes(main){
+  main.innerHTML = `
+    ${offlineBanner()}
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">Promoções sazonais</p>
+      <button class="btn btn-sm" id="btnAddPromo">+ Promoção</button>
+    </div>
+    <p style="font-size:.78rem;color:var(--text-muted);margin:0 0 10px;">Cada promoção liga um grupo a um período e a faixas de desconto por nº de produtos distintos no kit.</p>
+    <div class="stack" id="promoList"></div>
+  `;
   const promoList = document.getElementById('promoList');
   promoList.innerHTML = state.promocoes.length ? state.promocoes.map(p=>{
     const grupo = byId(state.grupos, p.grupo_id);
@@ -2211,6 +2392,20 @@ function renderConfig(main){
     </div>`;
   }).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhuma promoção cadastrada.</p>`;
 
+  document.getElementById('btnAddPromo').addEventListener('click', ()=>openPromoEditor(null));
+  promoList.querySelectorAll('[data-edit-promo]').forEach(b=> b.addEventListener('click', ()=>openPromoEditor(b.dataset.editPromo)));
+  promoList.querySelectorAll('[data-del-promo]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deletePromocao(b.dataset.delPromo))));
+}
+
+function renderAdminVendedores(main){
+  main.innerHTML = `
+    ${offlineBanner()}
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">Vendedores cadastrados</p>
+      <button class="btn btn-sm" id="btnAddVendedor">+ Vendedor</button>
+    </div>
+    <div class="stack" id="vendedorList"></div>
+  `;
   const vendedorList = document.getElementById('vendedorList');
   vendedorList.innerHTML = state.vendedores.length ? state.vendedores.map(v=>`
     <div class="item-card">
@@ -2223,49 +2418,6 @@ function renderConfig(main){
         <button class="btn btn-sm btn-ghost" data-del-vendedor="${v.id}">Excluir</button>
       </div>
     </div>`).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum vendedor cadastrado.</p>`;
-
-  document.getElementById('importarBackupInput').addEventListener('change', async (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    // Guarda a mensagem em variáveis de módulo (importarBackupStatusMsg/Cor), não só no DOM: cada
-    // escrita no banco durante a importação dispara um onSnapshot que re-renderiza esta tela do
-    // zero (renderConfig recria a página inteira, inclusive um <p id="importarBackupStatus">
-    // vazio) — sem isso, uma dessas atualizações chegando depois de "Importando…"/"sucesso" ser
-    // exibido apagava a mensagem de volta pro vazio. Reconsultar o elemento a cada chamada
-    // continua necessário: o elemento capturado no início ficaria "órfão" (fora do DOM) depois de
-    // qualquer um desses re-renders.
-    const setStatus = (msg, cor)=>{
-      importarBackupStatusMsg = msg; importarBackupStatusCor = cor;
-      const el = document.getElementById('importarBackupStatus');
-      if(el){ el.textContent = msg; el.style.color = cor; }
-    };
-    setStatus('Importando…', 'var(--text-muted)');
-    try{
-      const texto = await file.text();
-      const backup = JSON.parse(texto);
-      await importarBackupJSON(backup);
-      setStatus('Backup importado com sucesso!', 'var(--accent)');
-    }catch(err){
-      setStatus('Não deu pra importar: ' + err.message, 'var(--danger)');
-    }
-    e.target.value = '';
-  });
-
-  document.getElementById('btnEditCfg').addEventListener('click', openConfigEditor);
-  document.getElementById('btnAddImp').addEventListener('click', ()=>openImpressoraEditor(null));
-  impList.querySelectorAll('[data-edit-imp]').forEach(b=> b.addEventListener('click', ()=>openImpressoraEditor(b.dataset.editImp)));
-  impList.querySelectorAll('[data-del-imp]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteImpressora(b.dataset.delImp))));
-  document.getElementById('btnAddMat').addEventListener('click', ()=>openMaterialEditor(null));
-  matList.querySelectorAll('[data-edit-mat]').forEach(b=> b.addEventListener('click', ()=>openMaterialEditor(b.dataset.editMat)));
-  matList.querySelectorAll('[data-del-mat]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteMaterial(b.dataset.delMat))));
-
-  document.getElementById('btnAddGrupo').addEventListener('click', ()=>openGrupoEditor(null));
-  grupoList.querySelectorAll('[data-edit-grupo]').forEach(b=> b.addEventListener('click', ()=>openGrupoEditor(b.dataset.editGrupo)));
-  grupoList.querySelectorAll('[data-del-grupo]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteGrupo(b.dataset.delGrupo))));
-
-  document.getElementById('btnAddPromo').addEventListener('click', ()=>openPromoEditor(null));
-  promoList.querySelectorAll('[data-edit-promo]').forEach(b=> b.addEventListener('click', ()=>openPromoEditor(b.dataset.editPromo)));
-  promoList.querySelectorAll('[data-del-promo]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deletePromocao(b.dataset.delPromo))));
 
   document.getElementById('btnAddVendedor').addEventListener('click', ()=>openVendedorEditor(null));
   vendedorList.querySelectorAll('[data-edit-vendedor]').forEach(b=> b.addEventListener('click', ()=>openVendedorEditor(b.dataset.editVendedor)));
@@ -2525,8 +2677,8 @@ function fullRerender(){
 // e aponta as peças antigas (sem impressora_id) pra ele — sem exigir recadastro do usuário.
 let migracaoImpressoraEmAndamento = false;
 // Mensagem do status de "importar backup" (ver importarBackupInput 'change' handler, em
-// renderConfig) — vive fora do template pra sobreviver a re-renders da tela disparados por
-// onSnapshot enquanto a importação ainda está em andamento.
+// renderAdminParametros) — vive fora do template pra sobreviver a re-renders da tela disparados
+// por onSnapshot enquanto a importação ainda está em andamento.
 let importarBackupStatusMsg = '';
 let importarBackupStatusCor = 'var(--text-muted)';
 async function tentarMigrarImpressora(){
@@ -2582,6 +2734,7 @@ let bootStarted = false;
 function boot(){
   if(bootStarted) return;
   bootStarted = true;
+  wireSidebarChrome();
   renderNav();
   renderMain();
   // Chamado já aqui (antes de saber se o Firestore vai conectar) pra cobrir o modo local também
@@ -2600,37 +2753,40 @@ function boot(){
     db.collection('materiais').onSnapshot(qs=>{
       state.materiais = qs.docs.map(d=>({id:d.id, ...d.data()}));
       populateMaterialSelect();
-      if(state.tab==='calc') recomputeCalc();
-      if(state.tab!=='calc') fullRerender();
+      // O modal "Adicionar Produto" (aberto a partir do Catálogo) tem sua própria recomputação ao
+      // vivo — se ele estiver aberto (breakdownCard presente), só recalcula em vez de rerenderizar
+      // a tela toda por baixo (o que fecharia/perderia o modal).
+      if(document.getElementById('breakdownCard')) recomputeCalc();
+      else fullRerender();
     }, ()=>{});
 
     db.collection('impressoras').onSnapshot(qs=>{
       state.impressoras = qs.docs.map(d=>({id:d.id, ...d.data()}));
       populateImpressoraSelect();
-      if(state.tab==='calc') recomputeCalc();
-      if(state.tab!=='calc') fullRerender();
+      if(document.getElementById('breakdownCard')) recomputeCalc();
+      else fullRerender();
       tentarMigrarImpressora();
     }, ()=>{});
 
     db.collection('produtos').onSnapshot(qs=>{
       state.produtos = qs.docs.map(d=>({id:d.id, ...d.data()}));
-      if(state.tab!=='calc') fullRerender();
+      fullRerender();
       tentarMigrarImpressora();
     }, ()=>{});
 
     db.collection('orcamentos').onSnapshot(qs=>{
       state.orcamentos = qs.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=> (b.criado_em||'').localeCompare(a.criado_em||''));
-      if(state.tab!=='calc') fullRerender();
+      fullRerender();
     }, ()=>{});
 
     db.collection('grupos').onSnapshot(qs=>{
       state.grupos = qs.docs.map(d=>({id:d.id, ...d.data()}));
-      if(state.tab==='config') fullRerender();
+      if(state.tab==='admin-grupos') fullRerender();
     }, ()=>{});
 
     db.collection('promocoes').onSnapshot(qs=>{
       state.promocoes = qs.docs.map(d=>({id:d.id, ...d.data()}));
-      if(state.tab==='config') fullRerender();
+      if(state.tab==='admin-promocoes') fullRerender();
     }, ()=>{});
 
     db.collection('clientes').onSnapshot(qs=>{
@@ -2641,7 +2797,7 @@ function boot(){
     db.collection('vendedores').onSnapshot(qs=>{
       state.vendedores = qs.docs.map(d=>({id:d.id, ...d.data()}));
       checarVendedorAtual();
-      if(state.tab==='config') fullRerender();
+      if(state.tab==='admin-vendedores') fullRerender();
     }, ()=>{});
 
   }catch(e){ /* stays in local fallback mode */ }
