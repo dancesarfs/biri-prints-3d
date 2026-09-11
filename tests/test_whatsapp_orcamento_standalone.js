@@ -82,9 +82,11 @@ async function login(page) {
   await abrirAbaStandalone(page, 'orcamentos');
   await page.waitForSelector('#fabNovoOrc');
   await page.click('#fabNovoOrc');
-  await page.waitForSelector('#oCliente');
-  await page.fill('#oCliente', 'Cliente WhatsApp');
-  await page.fill('#oClienteTelefone', '(11) 98888-7777');
+  await page.waitForSelector('[data-cliente-modo="novo"]');
+  await page.click('[data-cliente-modo="novo"]');
+  await page.waitForSelector('#oClienteNome');
+  await page.fill('#oClienteNome', 'Cliente WhatsApp');
+  await page.fill('#oClienteTelNovo', '(11) 98888-7777');
   await page.fill('#oAvulsoNome', 'Item Teste');
   await page.fill('#oAvulsoPreco', '50');
   await page.click('#oAddItem');
@@ -106,8 +108,10 @@ async function login(page) {
 
   // ---------- 4. orçamento sem telefone -> link genérico (usuário escolhe o contato) ----------
   await page.click('#fabNovoOrc');
-  await page.waitForSelector('#oCliente');
-  await page.fill('#oCliente', 'Cliente Sem Telefone');
+  await page.waitForSelector('[data-cliente-modo="novo"]');
+  await page.click('[data-cliente-modo="novo"]');
+  await page.waitForSelector('#oClienteNome');
+  await page.fill('#oClienteNome', 'Cliente Sem Telefone');
   await page.fill('#oAvulsoNome', 'Item Teste 2');
   await page.fill('#oAvulsoPreco', '30');
   await page.click('#oAddItem');

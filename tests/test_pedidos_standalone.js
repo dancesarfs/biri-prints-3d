@@ -40,8 +40,10 @@ async function criarOrcamento(page, cliente, { preco = '10' } = {}) {
   await abrirAbaStandalone(page, 'orcamentos');
   await page.waitForSelector('#fabNovoOrc');
   await page.click('#fabNovoOrc');
-  await page.waitForSelector('#oCliente');
-  await page.fill('#oCliente', cliente);
+  await page.waitForSelector('[data-cliente-modo="novo"]');
+  await page.click('[data-cliente-modo="novo"]');
+  await page.waitForSelector('#oClienteNome');
+  await page.fill('#oClienteNome', cliente);
   await page.fill('#oAvulsoNome', 'Item ' + cliente);
   await page.fill('#oAvulsoPreco', preco);
   await page.click('#oAddItem');
@@ -188,10 +190,12 @@ async function criarOrcamento(page, cliente, { preco = '10' } = {}) {
   await page.waitForTimeout(80);
 
   // ---------- 7. "Copiar orçamento" a partir de um pedido: cria um NOVO orçamento, recalculado ----------
+  // "João Comprador" foi criado via "Novo cliente" no orçamento, então já existe cadastrado —
+  // copiar o orçamento deve vir com o mesmo cliente já selecionado (modo "buscar").
   await page.click('.card.expanded [data-copiar-orc]');
-  await page.waitForSelector('#oCliente');
-  const clienteCopiado = await page.$eval('#oCliente', el => el.value);
-  assert(clienteCopiado === 'João Comprador', `"Copiar orçamento" deve pré-preencher o cliente — obtido: ${clienteCopiado}`);
+  await page.waitForSelector('#oClienteBox');
+  const clienteCopiado = await page.textContent('#oClienteBox');
+  assert(clienteCopiado.includes('João Comprador'), `"Copiar orçamento" deve pré-preencher o cliente — obtido: ${clienteCopiado.replace(/\s+/g,' ')}`);
   await page.click('#oSalvar');
   await page.waitForTimeout(150);
   await page.evaluate(() => { document.getElementById('modalBackdrop')?.remove(); });
