@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
-const { passarPeloGateVendedorStandalone } = require('./test_helpers_standalone');
+const { passarPeloGateVendedorStandalone, abrirAbaStandalone } = require('./test_helpers_standalone');
 
 function assert(cond, msg) {
   if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; }
@@ -26,11 +26,11 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   await page.fill('#loginEmail', 'dono@teste.com');
   await page.fill('#loginSenha', 'senha123');
   await page.click('#loginBtn');
-  await page.waitForSelector('#tabsBottom button');
+  await page.waitForSelector('#sidebarNav [data-nav]');
   await passarPeloGateVendedorStandalone(page);
 
   // ---------- 1. aba Clientes: começa vazia ----------
-  await page.click('#tabsBottom button:has-text("Clientes")');
+  await abrirAbaStandalone(page, 'clientes');
   await page.waitForSelector('#fabNovoCliente');
   const vazio = await page.$('.empty h3');
   assert(vazio && (await vazio.textContent()).includes('Nenhum cliente'), 'lista de clientes deve começar vazia');
@@ -119,10 +119,10 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   const totalDepois = (await page.$$('.item-card')).length;
   assert(totalDepois === totalAntes - 1, `excluir cliente deve reduzir a lista em 1 — antes: ${totalAntes}, depois: ${totalDepois}`);
 
-  // ---------- 9. a aba Ajustes (e o resto do app) continua acessível com a aba nova no meio ----------
-  await page.click('#tabsBottom button:has-text("Ajustes")');
+  // ---------- 9. o restante do app (Admin > Parâmetros) continua acessível com Clientes no menu ----------
+  await abrirAbaStandalone(page, 'admin-parametros');
   await page.waitForSelector('#importarBackupInput');
-  assert(true, 'aba Ajustes continua alcançável depois de inserir Clientes na barra de abas');
+  assert(true, 'Admin > Parâmetros continua alcançável depois de inserir Clientes no menu lateral');
 
   await browser.close();
   console.log(process.exitCode === 1 ? '\n=== ALGUM TESTE FALHOU ===' : '\n=== TODOS OS TESTES PASSARAM ===');

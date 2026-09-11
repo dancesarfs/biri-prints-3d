@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { abrirAbaStandalone } = require('./test_helpers_standalone');
 
 function assert(cond, msg) {
   if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; }
@@ -24,7 +25,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   await page.fill('#loginEmail', 'dono@teste.com');
   await page.fill('#loginSenha', 'senha123');
   await page.click('#loginBtn');
-  await page.waitForSelector('#tabsBottom button');
+  await page.waitForSelector('#sidebarNav [data-nav]');
 
   // ---------- 1. gate bloqueia o app (além do login) até escolher/cadastrar um vendedor ----------
   await page.waitForSelector('#vendedorGate');
@@ -50,8 +51,8 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   const badge = await page.$eval('#vendedorAtualBox', el => el.textContent.trim());
   assert(badge === 'Danilo · trocar', `badge do cabeçalho deve mostrar o vendedor atual — obtido: ${badge}`);
 
-  // ---------- 2. cadastro em Ajustes: ativo por padrão, badge Ativo/Inativo, editar ----------
-  await page.click('#tabsBottom button:has-text("Ajustes")');
+  // ---------- 2. cadastro em Admin > Vendedores: ativo por padrão, badge Ativo/Inativo, editar ----------
+  await abrirAbaStandalone(page, 'admin-vendedores');
   await page.waitForSelector('#btnAddVendedor');
   await page.click('#btnAddVendedor');
   await page.waitForSelector('#vNome');
@@ -73,7 +74,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   assert(badgesDepoisInativo.includes('Inativo'), `depois de desmarcar "ativo", o selo deve virar "Inativo" — obtido: ${badgesDepoisInativo.join(', ')}`);
 
   // ---------- 3. vendedor inativo não aparece pra escolher num orçamento novo, mas o atual continua ----------
-  await page.click('#tabsBottom button:has-text("Orçamentos")');
+  await abrirAbaStandalone(page, 'orcamentos');
   await page.waitForSelector('#fabNovoOrc');
   await page.click('#fabNovoOrc');
   await page.waitForSelector('#oVendedor');
@@ -93,7 +94,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   assert(badgeContinuaDanilo === 'Danilo · trocar', 'fechar o modal de troca sem escolher ninguém deve manter o vendedor atual');
 
   // ---------- 5. excluir vendedor (2 cliques) ----------
-  await page.click('#tabsBottom button:has-text("Ajustes")');
+  await abrirAbaStandalone(page, 'admin-vendedores');
   await page.waitForSelector('#vendedorList');
   const totalAntes = (await page.$$('#vendedorList .item-card')).length;
   const delBtn = await page.$('.item-card:has(h3:has-text("Marina")) [data-del-vendedor]');
