@@ -14,10 +14,10 @@
     --border:#D3D9D7;
     --text:#161918;
     --text-muted:#5B6462;
-    --accent:#0E8F5F;
+    --accent:#1D63C7;
     --accent-ink:#FFFFFF;
-    --accent-soft:#DCF1E7;
-    --accent-soft-border:#B7DFCB;
+    --accent-soft:#DCEAF9;
+    --accent-soft-border:#B7D4EF;
     --warn:#9A6318;
     --warn-soft:#F5E7CE;
     --warn-soft-border:#E6CB99;
@@ -33,10 +33,10 @@
       --border:#3A403D;
       --text:#EDEFED;
       --text-muted:#9AA39F;
-      --accent:#35C687;
-      --accent-ink:#0C1512;
-      --accent-soft:#1E332A;
-      --accent-soft-border:#2E4A3C;
+      --accent:#4DA8F0;
+      --accent-ink:#0B1F2E;
+      --accent-soft:#1B2C3C;
+      --accent-soft-border:#2C4A63;
       --warn:#E3B15C;
       --warn-soft:#332A18;
       --warn-soft-border:#4F3F22;
@@ -52,10 +52,10 @@
     --border:#3A403D;
     --text:#EDEFED;
     --text-muted:#9AA39F;
-    --accent:#35C687;
-    --accent-ink:#0C1512;
-    --accent-soft:#1E332A;
-    --accent-soft-border:#2E4A3C;
+    --accent:#4DA8F0;
+    --accent-ink:#0B1F2E;
+    --accent-soft:#1B2C3C;
+    --accent-soft-border:#2C4A63;
     --warn:#E3B15C;
     --warn-soft:#332A18;
     --warn-soft-border:#4F3F22;
@@ -1004,15 +1004,15 @@ function renderCatalogo(main){
 
 function gerarTextoCatalogo(produtos){
   if(!produtos || produtos.length===0) return '';
-  let txt = `📋 *Catálogo Biri Prints 3D*\n\n`;
+  let txt = `● *Catálogo Biri Prints 3D*\n\n`;
   produtos.forEach(p=>{
     const r = precoAjustado(p, state.config);
-    txt += `🔸 *${p.nome}* — ${fmtBRL(r.precoFinal)}\n`;
+    txt += `◆ *${p.nome}* — ${fmtBRL(r.precoFinal)}\n`;
   });
   txt += `\n_Valores sujeitos a alteração._`;
   const promoAtiva = (state.promocoes||[]).some(promo => promocaoStatus(promo)==='ativa');
   if(promoAtiva){
-    txt += `\n\n🎁 Kits com desconto disponíveis nesse período — me chama!`;
+    txt += `\n\n▲ Kits com desconto disponíveis nesse período — me chama!`;
   }
   return txt;
 }
