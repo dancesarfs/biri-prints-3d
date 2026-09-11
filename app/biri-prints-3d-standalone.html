@@ -1382,10 +1382,11 @@ function renderOrcamentos(main){
       const itensHtml = expanded ? `<div class="stack" style="margin-top:10px;">${o.itens.map(it=>`
         <div class="list-line"><span>${it.nome} × ${fmtNum(it.quantidade,0)}</span><span class="mono">${fmtBRL(it.preco_unit*it.quantidade)}</span></div>
       `).join('')}
-      ${o.desconto_kit_total>0 ? `<div class="list-line"><span>Subtotal (sem desconto)</span><span class="mono">${fmtBRL(o.subtotal)}</span></div>` : ''}
+      ${(o.desconto_kit_total>0 || o.desconto_manual_valor>0) ? `<div class="list-line"><span>Subtotal (sem desconto)</span><span class="mono">${fmtBRL(o.subtotal)}</span></div>` : ''}
       ${(o.desconto_kit_linhas&&o.desconto_kit_linhas.length) ? o.desconto_kit_linhas.map(l=>`
         <div class="list-line" style="color:var(--accent);"><span>Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%)</span><span class="mono">− ${fmtBRL(l.desconto)}</span></div>
       `).join('') : ''}
+      ${o.desconto_manual_valor>0 ? `<div class="list-line" style="color:var(--accent);"><span>Desconto negociado (${fmtNum(o.desconto_manual_pct,0)}%)</span><span class="mono">− ${fmtBRL(o.desconto_manual_valor)}</span></div>` : ''}
       ${encerrado ? `<p style="font-size:.8rem; color:var(--text-muted); margin:10px 0 0;">Encerrado — virou <strong>Pedido${o.pedido_numero?' #'+o.pedido_numero:''}</strong>. Gerencie produção/pagamento na aba Pedidos.</p>` : ''}
       <div class="row" style="margin-top:8px; flex-wrap:wrap; gap:8px;">
         <button class="btn btn-sm" style="background:var(--accent); border-color:var(--accent); color:var(--accent-ink);" data-whatsapp="${o.id}">Enviar por WhatsApp</button>
@@ -1451,6 +1452,9 @@ function gerarTextoOrcamento(o){
   if(o.desconto_kit_total>0){
     txt += `\nSubtotal: ${fmtBRL(o.subtotal)}\n`;
     (o.desconto_kit_linhas||[]).forEach(l=>{ txt += `_Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%): − ${fmtBRL(l.desconto)}_\n`; });
+  } else if(o.desconto_manual_valor>0){
+    txt += `\nSubtotal: ${fmtBRL(o.subtotal)}\n`;
+    txt += `_Desconto negociado (${fmtNum(o.desconto_manual_pct,0)}%): − ${fmtBRL(o.desconto_manual_valor)}_\n`;
   }
   txt += `\n*Total: ${fmtBRL(o.total)}*`;
   return txt;
@@ -1564,10 +1568,11 @@ function renderPedidos(main){
       const itensHtml = expanded ? `<div class="stack" style="margin-top:10px;">${o.itens.map(it=>`
         <div class="list-line"><span>${it.nome} × ${fmtNum(it.quantidade,0)}</span><span class="mono">${fmtBRL(it.preco_unit*it.quantidade)}</span></div>
       `).join('')}
-      ${o.desconto_kit_total>0 ? `<div class="list-line"><span>Subtotal (sem desconto)</span><span class="mono">${fmtBRL(o.subtotal)}</span></div>` : ''}
+      ${(o.desconto_kit_total>0 || o.desconto_manual_valor>0) ? `<div class="list-line"><span>Subtotal (sem desconto)</span><span class="mono">${fmtBRL(o.subtotal)}</span></div>` : ''}
       ${(o.desconto_kit_linhas&&o.desconto_kit_linhas.length) ? o.desconto_kit_linhas.map(l=>`
         <div class="list-line" style="color:var(--accent);"><span>Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%)</span><span class="mono">− ${fmtBRL(l.desconto)}</span></div>
       `).join('') : ''}
+      ${o.desconto_manual_valor>0 ? `<div class="list-line" style="color:var(--accent);"><span>Desconto negociado (${fmtNum(o.desconto_manual_pct,0)}%)</span><span class="mono">− ${fmtBRL(o.desconto_manual_valor)}</span></div>` : ''}
       <p style="font-size:.78rem; color:var(--text-muted); margin:10px 0 0;">${o.orcamento_numero?`A partir do Orçamento #${o.orcamento_numero}`:'Orçamento original'}</p>
       <div class="row" style="margin-top:10px; align-items:center; gap:8px; flex-wrap:wrap;">
         ${sp==='cancelado' ? `
@@ -1741,6 +1746,8 @@ function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
     cliente_telefone: base?.cliente_telefone || '',
     cliente_id: base?.cliente_id || null,
     vendedor_id: copiarDe ? (state.vendedorAtualId || null) : (existing?.vendedor_id || state.vendedorAtualId || null),
+    // "Copiar orçamento" nunca herda o desconto negociado do original — nasce sempre zerado.
+    desconto_manual_pct: copiarDe ? 0 : (Number(existing?.desconto_manual_pct) || 0),
     itens: [],
   };
   if(copiarDe){
@@ -1809,6 +1816,12 @@ function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
         <p class="section-label">Itens</p>
         <div id="oItensList" class="stack"></div>
         <div id="oKitDescontos"></div>
+        <label class="field">
+          <span>Desconto negociado (%)</span>
+          <input class="ipt" id="oDescontoManual" type="number" min="0" max="100" step="1" value="${draft.desconto_manual_pct}">
+        </label>
+        <p id="oDescontoManualMsg" style="font-size:.74rem;color:var(--text-muted);margin:2px 0 0;"></p>
+        <div id="oDescontoManualLinha"></div>
         <div class="breakdown-row" id="oSubtotalRow" style="display:none;"><span class="lbl">Subtotal</span><span class="mono" id="oSubtotal"></span></div>
         <div class="breakdown-row total"><span class="lbl">Total</span><span class="mono" id="oTotal"></span></div>
       </div>
@@ -2003,11 +2016,37 @@ function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
         ${kit.linhas.map(l=>`<div class="breakdown-row"><span class="lbl">${l.promoNome} · ${l.itens.length} produtos (${fmtNum(l.pct,0)}%)</span><span class="mono">− ${fmtBRL(l.desconto)}</span></div>`).join('')}
       </div>` : '';
 
-      bd.querySelector('#oSubtotalRow').style.display = kit.total>0 ? 'flex' : 'none';
+      // Desconto negociado (manual) e desconto de kit são mutuamente exclusivos — kit tem
+      // prioridade. Se o kit ficar ativo enquanto havia um desconto manual, zera o manual e avisa
+      // por toast (só nessa transição — depois de zerado, essa checagem não dispara de novo até o
+      // vendedor digitar um valor novo).
+      const kitAtivo = kit.total > 0;
+      if(kitAtivo && draft.desconto_manual_pct > 0){
+        draft.desconto_manual_pct = 0;
+        showToast('Desconto de kit ativado — o desconto negociado foi zerado');
+      }
+      const descontoManualValor = kitAtivo ? 0 : subtotal * (draft.desconto_manual_pct/100);
+
+      const descInput = bd.querySelector('#oDescontoManual');
+      descInput.disabled = kitAtivo;
+      descInput.value = draft.desconto_manual_pct;
+      bd.querySelector('#oDescontoManualMsg').textContent = kitAtivo
+        ? 'Desabilitado enquanto o desconto de kit estiver ativo.' : '';
+      bd.querySelector('#oDescontoManualLinha').innerHTML = descontoManualValor>0
+        ? `<div class="breakdown-row"><span class="lbl">Desconto negociado (${fmtNum(draft.desconto_manual_pct,0)}%)</span><span class="mono">− ${fmtBRL(descontoManualValor)}</span></div>` : '';
+
+      bd.querySelector('#oSubtotalRow').style.display = (kit.total>0 || descontoManualValor>0) ? 'flex' : 'none';
       bd.querySelector('#oSubtotal').textContent = fmtBRL(subtotal);
-      bd.querySelector('#oTotal').textContent = fmtBRL(subtotal - kit.total);
+      bd.querySelector('#oTotal').textContent = fmtBRL(subtotal - kit.total - descontoManualValor);
     };
     renderItens();
+
+    bd.querySelector('#oDescontoManual').addEventListener('input', (e)=>{
+      let v = Number(e.target.value);
+      if(!isFinite(v)) v = 0;
+      draft.desconto_manual_pct = Math.max(0, Math.min(100, v));
+      renderItens();
+    });
 
     bd.querySelectorAll('[data-add-kit]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
@@ -2097,10 +2136,16 @@ function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
       const vendedor_nome = vendedor_id ? (byId(state.vendedores, vendedor_id)?.nome || '') : '';
       const subtotal = itensFinais.reduce((s,it)=>s+it.preco_unit*it.quantidade,0);
       const kit = calcularDescontosKit(itensFinais, state.grupos, state.promocoes);
-      const total = subtotal - kit.total;
+      // Desconto de kit e desconto negociado (manual) nunca convivem — kit sempre tem prioridade,
+      // mesma regra aplicada ao vivo em renderItens() (recalculada aqui de novo, sem confiar só no
+      // que já estava marcado na tela).
+      const desconto_manual_pct = kit.total>0 ? 0 : (Number(draft.desconto_manual_pct)||0);
+      const desconto_manual_valor = subtotal * (desconto_manual_pct/100);
+      const total = subtotal - kit.total - desconto_manual_valor;
       const data = {
         cliente, cliente_telefone, cliente_id, vendedor_id, vendedor_nome,
-        itens: itensFinais, subtotal, desconto_kit_total: kit.total, desconto_kit_linhas: kit.linhas, total,
+        itens: itensFinais, subtotal, desconto_kit_total: kit.total, desconto_kit_linhas: kit.linhas,
+        desconto_manual_pct, desconto_manual_valor, total,
         status: existing?.status || 'rascunho', criado_em: existing?.criado_em || new Date().toISOString(),
       };
       // Número sequencial só é atribuído na criação — orçamento editado mantém o número que já tinha.
