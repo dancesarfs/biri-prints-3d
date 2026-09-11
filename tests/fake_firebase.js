@@ -38,6 +38,8 @@
       this.store = {}; // { colecao: { id: data } }
       this._docListeners = {}; // { "colecao/id": [cb,...] }
       this._colListeners = {}; // { colecao: [cb,...] }
+      this._pendingDocFires = new Set(); // chaves "colecao/id" com notificação já agendada
+      this._pendingColFires = new Set(); // coleções com notificação já agendada
     }
     // Dispara os listeners num macrotask (setTimeout), não direto nem num microtask — o Firestore
     // de verdade nunca notifica onSnapshot de forma síncrona dentro da própria chamada de
@@ -46,17 +48,34 @@
     // guarda "não perturbe um modal aberto" (fullRerender) perderia esse re-render: o listener
     // disparava antes do closeModal(), via microtask, e via macrotask fica garantido que roda
     // depois de toda a cadeia de microtasks do .then() já ter terminado.
+    //
+    // Além disso, várias escritas na MESMA coleção/doc dentro do mesmo laço síncrono (ex.:
+    // importação de backup, que grava ~10 documentos em sequência) coalescem numa única
+    // notificação — o estado (docs/data) só é lido quando o macrotask dispara de fato, então já
+    // reflete todas as escritas acumuladas até lá. Sem isso, cada escrita agendava seu próprio
+    // setTimeout, multiplicando por N a cadeia de re-renders (cada um recriando toda a lista) e
+    // deixando esse trecho sensível a timeout em ambientes de CI mais lentos, mesmo sem bug real.
     _fireDoc(colecao, id) {
       const key = colecao + '/' + id;
-      const listeners = this._docListeners[key] || [];
-      const exists = !!(this.store[colecao] && (id in this.store[colecao]));
-      const data = exists ? this.store[colecao][id] : undefined;
-      setTimeout(() => listeners.forEach(cb => cb({ exists, data: () => data, id })), 0);
+      if (this._pendingDocFires.has(key)) return;
+      this._pendingDocFires.add(key);
+      setTimeout(() => {
+        this._pendingDocFires.delete(key);
+        const listeners = this._docListeners[key] || [];
+        const exists = !!(this.store[colecao] && (id in this.store[colecao]));
+        const data = exists ? this.store[colecao][id] : undefined;
+        listeners.forEach(cb => cb({ exists, data: () => data, id }));
+      }, 0);
     }
     _fireCol(colecao) {
-      const listeners = this._colListeners[colecao] || [];
-      const docs = Object.entries(this.store[colecao] || {}).map(([id, data]) => ({ id, data: () => data }));
-      setTimeout(() => listeners.forEach(cb => cb({ docs })), 0);
+      if (this._pendingColFires.has(colecao)) return;
+      this._pendingColFires.add(colecao);
+      setTimeout(() => {
+        this._pendingColFires.delete(colecao);
+        const listeners = this._colListeners[colecao] || [];
+        const docs = Object.entries(this.store[colecao] || {}).map(([id, data]) => ({ id, data: () => data }));
+        listeners.forEach(cb => cb({ docs }));
+      }, 0);
     }
     doc(path) {
       const [colecao, id] = path.split('/');

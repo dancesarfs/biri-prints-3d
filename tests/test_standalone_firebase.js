@@ -126,11 +126,12 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   await page2.click('#tabsBottom button:has-text("Ajustes")'); // Ajustes
   await page2.waitForSelector('#importarBackupInput');
   await page2.setInputFiles('#importarBackupInput', backupPath);
-  // Timeout maior que o padrão de 5s: a importação dispara várias escritas no Firestore mock,
-  // cada uma notificando os listeners de onSnapshot num macrotask (setTimeout) — fiel ao Firestore
-  // de verdade, que nunca notifica de forma síncrona (ver fake_firebase.js) — e em runners de CI
-  // mais lentos (memória/CPU compartilhada) essa cadeia de re-renders pode passar de 5s.
-  await page2.waitForSelector('#importarBackupStatus:has-text("sucesso")', { timeout: 15000 });
+  // Sem timeout customizado (usa o padrão do Playwright, 30s) — igual a todo outro waitForSelector
+  // desse arquivo. Um valor menor aqui (5s, depois 15s) já flakou em CI: esse teste em particular é
+  // o mais longo da suíte (dois browsers, vários passos), fica mais exposto a CPU/memória
+  // compartilhada em runners mais lentos, e não há motivo pra essa espera específica ter um prazo
+  // mais curto que as outras.
+  await page2.waitForSelector('#importarBackupStatus:has-text("sucesso")');
   await page2.waitForTimeout(200);
 
   const impNomes = await page2.$$eval('#impList h3', els => els.map(e => e.textContent.trim()));

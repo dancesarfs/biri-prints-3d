@@ -1614,7 +1614,7 @@ function renderConfig(main){
       <p class="section-label" style="margin-bottom:0;">Importar backup</p>
       <p style="font-size:.78rem;color:var(--text-muted);margin:0;">Importa um arquivo de backup (.json) exportado do sistema — usa isso uma vez, pra trazer os dados que já existiam antes de migrar pra cá. Peças/impressoras/materiais/grupos/promoções com o mesmo ID são substituídos; o resto fica como está.</p>
       <input type="file" id="importarBackupInput" accept="application/json" class="ipt">
-      <p id="importarBackupStatus" style="font-size:.78rem;margin:0;"></p>
+      <p id="importarBackupStatus" style="font-size:.78rem;margin:0;color:${importarBackupStatusCor};">${importarBackupStatusMsg}</p>
     </div>
 
     <div class="row" style="justify-content:space-between; margin-bottom:2px;">
@@ -1730,10 +1730,15 @@ function renderConfig(main){
   document.getElementById('importarBackupInput').addEventListener('change', async (e)=>{
     const file = e.target.files[0];
     if(!file) return;
-    // reconsulta o elemento de status a cada atualização: cada escrita no banco durante a
-    // importação dispara um onSnapshot que re-renderiza esta tela, então o elemento capturado
-    // no início ficaria "órfão" (fora do DOM) antes da importação terminar.
+    // Guarda a mensagem em variáveis de módulo (importarBackupStatusMsg/Cor), não só no DOM: cada
+    // escrita no banco durante a importação dispara um onSnapshot que re-renderiza esta tela do
+    // zero (renderConfig recria a página inteira, inclusive um <p id="importarBackupStatus">
+    // vazio) — sem isso, uma dessas atualizações chegando depois de "Importando…"/"sucesso" ser
+    // exibido apagava a mensagem de volta pro vazio. Reconsultar o elemento a cada chamada
+    // continua necessário: o elemento capturado no início ficaria "órfão" (fora do DOM) depois de
+    // qualquer um desses re-renders.
     const setStatus = (msg, cor)=>{
+      importarBackupStatusMsg = msg; importarBackupStatusCor = cor;
       const el = document.getElementById('importarBackupStatus');
       if(el){ el.textContent = msg; el.style.color = cor; }
     };
@@ -2018,6 +2023,11 @@ function fullRerender(){
 // dentro de config/geral), cria o primeiro registro em "impressoras" a partir desses valores
 // e aponta as peças antigas (sem impressora_id) pra ele — sem exigir recadastro do usuário.
 let migracaoImpressoraEmAndamento = false;
+// Mensagem do status de "importar backup" (ver importarBackupInput 'change' handler, em
+// renderConfig) — vive fora do template pra sobreviver a re-renders da tela disparados por
+// onSnapshot enquanto a importação ainda está em andamento.
+let importarBackupStatusMsg = '';
+let importarBackupStatusCor = 'var(--text-muted)';
 async function tentarMigrarImpressora(){
   if(migracaoImpressoraEmAndamento || !state.dbOk) return;
   if(state.impressoras.length > 0) return; // já existe pelo menos uma impressora cadastrada
