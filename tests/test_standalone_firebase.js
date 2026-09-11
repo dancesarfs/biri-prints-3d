@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { passarPeloGateVendedorStandalone } = require('./test_helpers_standalone');
 
 function assert(cond, msg) {
   if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; }
@@ -48,6 +49,10 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   const loginEscondidoDepois = await page.$eval('#loginScreen', el => getComputedStyle(el).display === 'none');
   assert(appVisivelDepois, 'depois do login correto, o app deve aparecer');
   assert(loginEscondidoDepois, 'depois do login correto, a tela de login deve sumir');
+
+  // desde a funcionalidade de vendedores, o login (Firebase) não basta — precisa escolher/
+  // cadastrar um vendedor nesse "aparelho" antes de usar qualquer aba.
+  await passarPeloGateVendedorStandalone(page);
 
   // ---------- 4. catálogo começa vazio (projeto Firebase novo, sem dados ainda) ----------
   await page.click('#tabsBottom button:nth-child(2)'); // Catálogo
@@ -119,6 +124,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   await page2.fill('#loginSenha', 'senha123');
   await page2.click('#loginBtn');
   await page2.waitForSelector('#tabsBottom button');
+  await passarPeloGateVendedorStandalone(page2);
 
   const backupPath = path.resolve(__dirname, '..', 'data', 'biri-prints-3d-backup.json');
   assert(fs.existsSync(backupPath), 'arquivo de backup real (biri-prints-3d-backup.json) deve existir pra esse teste rodar');

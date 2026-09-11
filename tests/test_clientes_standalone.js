@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { passarPeloGateVendedorStandalone } = require('./test_helpers_standalone');
 
 function assert(cond, msg) {
   if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; }
@@ -26,6 +27,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   await page.fill('#loginSenha', 'senha123');
   await page.click('#loginBtn');
   await page.waitForSelector('#tabsBottom button');
+  await passarPeloGateVendedorStandalone(page);
 
   // ---------- 1. aba Clientes: começa vazia ----------
   await page.click('#tabsBottom button:has-text("Clientes")');

@@ -92,6 +92,7 @@
   header.top h1{font-size:1.15rem; letter-spacing:.02em; text-transform:uppercase; font-weight:600;}
   header.top .tagline{font-size:.72rem; color:var(--text-muted); letter-spacing:.03em; margin-top:1px;}
   nav.tabs-desktop{display:none; margin-left:auto; gap:4px;}
+  header.top #vendedorAtualBox{margin-left:auto;}
   nav.tabs-desktop button{
     background:none; border:1px solid transparent; color:var(--text-muted);
     padding:8px 14px; border-radius:8px; font-size:.85rem; font-weight:600;
@@ -129,6 +130,8 @@
     background:var(--surface); border:1px solid var(--border); border-radius:14px;
     padding:16px; box-shadow:var(--shadow);
   }
+  .card.expanded{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft), var(--shadow);}
+  .card.encerrado{background:var(--surface-2);}
   .stack{display:flex; flex-direction:column; gap:14px;}
   .row{display:flex; gap:10px; align-items:center;}
   .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
@@ -177,6 +180,7 @@
   .badge-warn{background:var(--warn-soft); color:var(--warn); border:1px solid var(--warn-soft-border);}
   .badge-accent{background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent-soft-border);}
   .badge-muted{background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border);}
+  .badge-danger{background:var(--danger-soft); color:var(--danger); border:1px solid var(--danger-soft);}
 
   .cards-grid{display:grid; grid-template-columns:1fr; gap:12px;}
   @media (min-width:640px){ .cards-grid{grid-template-columns:1fr 1fr;} }
@@ -270,6 +274,7 @@
       <div class="tagline">Precificação 3D</div>
     </div>
     <nav class="tabs-desktop" id="tabsDesktop"></nav>
+    <div id="vendedorAtualBox"></div>
     <button class="btn btn-sm btn-ghost" id="btnLogout" title="Sair">Sair</button>
   </header>
   <main id="main"></main>
@@ -309,6 +314,7 @@ const TABS = [
   {id:'calc', label:'Calcular', icon: iconCalc},
   {id:'catalogo', label:'Catálogo', icon: iconLayers},
   {id:'orcamentos', label:'Orçamentos', icon: iconReceipt},
+  {id:'pedidos', label:'Pedidos', icon: iconPedido},
   {id:'clientes', label:'Clientes', icon: iconClientes},
   {id:'config', label:'Ajustes', icon: iconGear},
 ];
@@ -342,8 +348,16 @@ const state = {
   grupos: [],
   promocoes: [],
   clientes: [],
+  vendedores: [],
+  vendedorAtualId: null,
   tab: 'calc',
   expandedOrc: null,
+  filtroOrcStatus: 'todos',
+  filtroOrcCliente: '',
+  filtroOrcVendedor: 'todos',
+  filtroPedStatus: 'todos',
+  filtroPedCliente: '',
+  filtroPedVendedor: 'todos',
 };
 
 /* ---------------- icons (inline, stroke-based) ---------------- */
@@ -354,6 +368,8 @@ function iconGear(){return '<svg viewBox="0 0 24 24" fill="none"><circle cx="12"
 function iconPlus(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';}
 function iconEmptyBox(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M3 8l9-5 9 5-9 5-9-5Z" stroke="currentColor" stroke-width="1.6"/><path d="M3 8v9l9 5 9-5V8" stroke="currentColor" stroke-width="1.6"/></svg>';}
 function iconClientes(){return '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c1-3.8 4-5.6 7-5.6s6 1.8 7 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';}
+function iconPedido(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M3 8l9-5 9 5-9 5-9-5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M3 8v9l9 5 9-5V8" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12.5l2.2 2.2L16 10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';}
+function iconVendedor(){return '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c1-3.8 4-5.6 7-5.6s6 1.8 7 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18 4.2l1.5 1.5M19.5 4.2L18 5.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';}
 
 /* ---------------- helpers ---------------- */
 const fmtBRL = n => (isFinite(n)?n:0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
@@ -591,6 +607,7 @@ function renderNav(){
   document.querySelectorAll('[data-tab]').forEach(b=>{
     b.addEventListener('click', ()=>{ state.tab=b.dataset.tab; state.expandedOrc=null; renderNav(); renderMain(); });
   });
+  renderVendedorAtualBadge();
 }
 
 /* ---------------- main router ---------------- */
@@ -603,6 +620,7 @@ function renderMain(){
   if(state.tab==='calc') return renderCalc(main);
   if(state.tab==='catalogo') return renderCatalogo(main);
   if(state.tab==='orcamentos') return renderOrcamentos(main);
+  if(state.tab==='pedidos') return renderPedidos(main);
   if(state.tab==='clientes') return renderClientes(main);
   if(state.tab==='config') return renderConfig(main);
 }
@@ -1121,14 +1139,17 @@ function openProdutoEditor(id, duplicar){
   });
 }
 
-function confirmThenDelete(btn, onConfirm){
+function confirmThenAction(btn, onConfirm, opts={}){
+  const confirmText = opts.confirmText || 'Confirmar?';
+  const confirmClass = opts.confirmClass || 'btn-danger';
   if(btn.dataset.confirming){ onConfirm(); return; }
   btn.dataset.confirming='1';
   const original = btn.textContent;
-  btn.textContent='Confirmar?';
-  btn.classList.add('btn-danger');
-  setTimeout(()=>{ if(btn.isConnected){ btn.dataset.confirming=''; btn.textContent=original; btn.classList.remove('btn-danger'); } }, 2500);
+  btn.textContent = confirmText;
+  btn.classList.add(confirmClass);
+  setTimeout(()=>{ if(btn.isConnected){ btn.dataset.confirming=''; btn.textContent=original; btn.classList.remove(confirmClass); } }, 2500);
 }
+function confirmThenDelete(btn, onConfirm){ confirmThenAction(btn, onConfirm, {confirmText:'Confirmar?', confirmClass:'btn-danger'}); }
 
 function deleteProduto(id){
   if(!state.dbOk){ state.produtos = state.produtos.filter(p=>p.id!==id); renderMain(); return; }
@@ -1136,34 +1157,122 @@ function deleteProduto(id){
 }
 
 /* ================= ORÇAMENTOS ================= */
+// Status "rascunho" é o padrão — um orçamento antigo sem o campo `status` (de antes dessa
+// distinção existir) conta como rascunho também, nunca fica "orfão" fora dos filtros.
+const statusOrcamento = o => (o.status==='enviado' || o.status==='pedido') ? o.status : 'rascunho';
+
+// Depois que um orçamento vira pedido, ele ganha um sub-status próprio de acompanhamento de
+// produção/entrega (independente do status "rascunho/enviado/pedido" acima). "aberto" é o padrão
+// pra pedido sem esse campo ainda. "Pago" é um campo à parte (booleano), não uma etapa dessa
+// sequência — o vendedor pode cobrar adiantado ou só na entrega.
+const PEDIDO_STAGES = [
+  {v:'aberto', label:'Aberto'},
+  {v:'em_producao', label:'Em produção'},
+  {v:'pronto', label:'Pronto'},
+  {v:'entregue', label:'Entregue'},
+];
+const PEDIDO_BADGE_CLASS = {aberto:'badge-muted', em_producao:'badge-warn', pronto:'badge-accent', entregue:'badge-accent', cancelado:'badge-danger'};
+const PEDIDO_BADGE_LABEL = {aberto:'Aberto', em_producao:'Em produção', pronto:'Pronto', entregue:'Entregue', cancelado:'Cancelado'};
+const statusPedido = o => o.status_pedido || 'aberto';
+
+function proximoNumero(campo){
+  return state.orcamentos.reduce((m,o)=> Math.max(m, Number(o[campo])||0), 0) + 1;
+}
+
+function vendedorOptionsHtml(selecionadoId, {incluirTodos=false} = {}){
+  const visiveis = state.vendedores.filter(v=> v.ativo!==false || v.id===selecionadoId);
+  let html = incluirTodos ? `<option value="todos" ${selecionadoId==='todos'?'selected':''}>Todos os vendedores</option>` : `<option value="">— sem vendedor —</option>`;
+  html += visiveis.map(v=>`<option value="${v.id}" ${selecionadoId===v.id?'selected':''}>${v.nome}${v.ativo===false?' (inativo)':''}</option>`).join('');
+  return html;
+}
+// Filtro de vendedor lista TODOS os vendedores (inclusive inativos) já que serve pra achar coisas
+// do passado, não só pra escolher um vendedor novo. Uma linha de filtros compartilhada pelas duas
+// abas (Orçamentos e Pedidos) — cada uma passa seus próprios ids de elemento/campos de state.
+function vendedorFiltroOptionsHtml(selecionado){
+  return vendedorOptionsHtml(selecionado, {incluirTodos:true});
+}
+function filtrosClienteVendedorHtml(idCliente, idVendedor, valCliente, valVendedor){
+  return `
+    <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+      <input class="ipt" id="${idCliente}" placeholder="Filtrar por cliente..." value="${valCliente||''}" style="max-width:220px;">
+      <select class="ipt" id="${idVendedor}" style="max-width:200px;">${vendedorFiltroOptionsHtml(valVendedor||'todos')}</select>
+    </div>`;
+}
+
 function renderOrcamentos(main){
-  const orcs = state.orcamentos;
-  main.innerHTML = `${offlineBanner()}<p class="section-label">${orcs.length} orçamento${orcs.length!==1?'s':''}</p><div class="stack" id="orcList"></div>`;
+  // Aba Orçamentos = rascunho/enviado (em negociação) + encerrados (já viraram pedido, só
+  // leitura/histórico — ver renderPedidos pra gestão de produção/pagamento).
+  const orcsTodos = state.orcamentos;
+  const filtro = state.filtroOrcStatus || 'todos';
+  const filtroCliente = state.filtroOrcCliente || '';
+  const filtroVendedor = state.filtroOrcVendedor || 'todos';
+  let orcs = filtro==='todos' ? orcsTodos : orcsTodos.filter(o=> statusOrcamento(o)===filtro);
+  if(filtroCliente.trim()) orcs = orcs.filter(o=> (o.cliente||'').toLowerCase().includes(filtroCliente.trim().toLowerCase()));
+  if(filtroVendedor!=='todos') orcs = orcs.filter(o=> (o.vendedor_id||'')===filtroVendedor);
+  const contagem = {
+    rascunho: orcsTodos.filter(o=>statusOrcamento(o)==='rascunho').length,
+    enviado: orcsTodos.filter(o=>statusOrcamento(o)==='enviado').length,
+    pedido: orcsTodos.filter(o=>statusOrcamento(o)==='pedido').length,
+  };
+  main.innerHTML = `${offlineBanner()}
+    <div class="row" style="justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+      <p class="section-label" style="margin-bottom:0;">${orcs.length} orçamento${orcs.length!==1?'s':''}</p>
+      <div class="row" style="gap:6px; flex-wrap:wrap;">
+        <button class="btn btn-sm ${filtro==='todos'?'btn-primary':''}" data-filtro-orc="todos">Todos (${orcsTodos.length})</button>
+        <button class="btn btn-sm ${filtro==='rascunho'?'btn-primary':''}" data-filtro-orc="rascunho">Rascunhos (${contagem.rascunho})</button>
+        <button class="btn btn-sm ${filtro==='enviado'?'btn-primary':''}" data-filtro-orc="enviado">Enviados (${contagem.enviado})</button>
+        <button class="btn btn-sm ${filtro==='pedido'?'btn-primary':''}" data-filtro-orc="pedido">Encerrados (${contagem.pedido})</button>
+      </div>
+    </div>
+    ${filtrosClienteVendedorHtml('filtroOrcCliente', 'filtroOrcVendedor', filtroCliente, filtroVendedor)}
+    <div class="stack" id="orcList"></div>`;
+  document.querySelectorAll('[data-filtro-orc]').forEach(b=> b.addEventListener('click', ()=>{ state.filtroOrcStatus = b.dataset.filtroOrc; renderMain(); }));
+  document.getElementById('filtroOrcCliente').addEventListener('input', (e)=>{ state.filtroOrcCliente = e.target.value; renderMain(); });
+  document.getElementById('filtroOrcVendedor').addEventListener('change', (e)=>{ state.filtroOrcVendedor = e.target.value; renderMain(); });
+
   const list = document.getElementById('orcList');
-  if(orcs.length===0){
+  if(orcsTodos.length===0){
     list.innerHTML = `<div class="empty">${iconEmptyBox()}<h3>Nenhum orçamento ainda</h3><p>Monte um orçamento a partir do catálogo ou comece do zero.</p></div>`;
+  } else if(orcs.length===0){
+    list.innerHTML = `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum orçamento encontrado com esses filtros.</p>`;
   } else {
     list.innerHTML = orcs.map(o=>{
+      const status = statusOrcamento(o);
+      const encerrado = status==='pedido';
       const expanded = state.expandedOrc===o.id;
+      const metaTxt = [
+        o.orcamento_numero ? `Orçamento #${o.orcamento_numero}` : null,
+        new Date(o.criado_em).toLocaleDateString('pt-BR'),
+        `${o.itens.length} ite${o.itens.length!==1?'ns':'m'}`,
+        o.vendedor_nome || null,
+      ].filter(Boolean).join(' · ');
       const itensHtml = expanded ? `<div class="stack" style="margin-top:10px;">${o.itens.map(it=>`
         <div class="list-line"><span>${it.nome} × ${fmtNum(it.quantidade,0)}</span><span class="mono">${fmtBRL(it.preco_unit*it.quantidade)}</span></div>
       `).join('')}
+      ${o.desconto_kit_total>0 ? `<div class="list-line"><span>Subtotal (sem desconto)</span><span class="mono">${fmtBRL(o.subtotal)}</span></div>` : ''}
       ${(o.desconto_kit_linhas&&o.desconto_kit_linhas.length) ? o.desconto_kit_linhas.map(l=>`
         <div class="list-line" style="color:var(--accent);"><span>Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%)</span><span class="mono">− ${fmtBRL(l.desconto)}</span></div>
       `).join('') : ''}
+      ${encerrado ? `<p style="font-size:.8rem; color:var(--text-muted); margin:10px 0 0;">Encerrado — virou <strong>Pedido${o.pedido_numero?' #'+o.pedido_numero:''}</strong>. Gerencie produção/pagamento na aba Pedidos.</p>` : ''}
       <div class="row" style="margin-top:8px; flex-wrap:wrap; gap:8px;">
         <button class="btn btn-sm" style="background:var(--accent); border-color:var(--accent); color:var(--accent-ink);" data-whatsapp="${o.id}">Enviar por WhatsApp</button>
         <button class="btn btn-sm" data-copy="${o.id}">Copiar resumo</button>
-        <button class="btn btn-sm" data-toggle-status="${o.id}">${o.status==='enviado'?'Marcar como rascunho':'Marcar como enviado'}</button>
-        <button class="btn btn-sm btn-ghost" data-del-orc="${o.id}">Excluir</button>
+        <button class="btn btn-sm" data-copiar-orc="${o.id}">Copiar orçamento</button>
+        ${!encerrado ? `<button class="btn btn-sm" data-editar-orc="${o.id}">Editar</button>` : ''}
+        ${!encerrado ? `<button class="btn btn-sm" data-toggle-status="${o.id}">${status==='enviado'?'Marcar como rascunho':'Marcar como enviado'}</button>` : ''}
+        ${!encerrado ? `<button class="btn btn-sm btn-primary" data-converter-pedido="${o.id}">Converter em pedido</button>` : ''}
+        ${!encerrado ? `<button class="btn btn-sm btn-ghost" data-del-orc="${o.id}">Excluir</button>` : ''}
+      </div>
       </div>` : '';
-      return `<div class="card">
+      const badgeClass = encerrado ? 'badge-accent' : (status==='enviado' ? 'badge-accent' : 'badge-muted');
+      const badgeLabel = encerrado ? 'Encerrado' : (status==='enviado' ? 'Enviado' : 'Rascunho');
+      return `<div class="card${expanded?' expanded':''}${encerrado?' encerrado':''}">
         <div class="row" style="cursor:pointer;" data-toggle-orc="${o.id}">
           <div style="flex:1;">
             <h3 style="font-family:'IBM Plex Sans'; font-size:1rem; font-weight:600;">${o.cliente || 'Sem cliente'}</h3>
-            <div class="meta" style="font-size:.76rem;color:var(--text-muted);">${new Date(o.criado_em).toLocaleDateString('pt-BR')} · ${o.itens.length} ite${o.itens.length!==1?'ns':'m'}</div>
+            <div class="meta" style="font-size:.76rem;color:var(--text-muted);">${metaTxt}</div>
           </div>
-          <span class="badge ${o.status==='enviado'?'badge-accent':'badge-muted'}">${o.status==='enviado'?'Enviado':'Rascunho'}</span>
+          <span class="badge ${badgeClass}">${badgeLabel}</span>
           <span class="mono" style="font-weight:600;">${fmtBRL(o.total)}</span>
         </div>
         ${itensHtml}
@@ -1179,8 +1288,17 @@ function renderOrcamentos(main){
     list.querySelectorAll('[data-whatsapp]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); enviarOrcamentoWhatsApp(el.dataset.whatsapp); });
     });
+    list.querySelectorAll('[data-copiar-orc]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); copiarOrcamento(el.dataset.copiarOrc); });
+    });
+    list.querySelectorAll('[data-editar-orc]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); openOrcamentoBuilder(el.dataset.editarOrc, null); });
+    });
     list.querySelectorAll('[data-toggle-status]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); toggleOrcamentoStatus(el.dataset.toggleStatus); });
+    });
+    list.querySelectorAll('[data-converter-pedido]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); confirmThenAction(el, ()=>converterEmPedido(el.dataset.converterPedido), {confirmText:'Confirmar pedido?', confirmClass:'btn-primary'}); });
     });
     list.querySelectorAll('[data-del-orc]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); confirmThenDelete(el, ()=>deleteOrcamento(el.dataset.delOrc)); });
@@ -1265,13 +1383,247 @@ function deleteOrcamento(id){
   state.db.collection('orcamentos').doc(id).delete().then(()=>showToast('Orçamento removido')).catch(()=>showToast('Não deu pra excluir agora'));
 }
 
-function openOrcamentoBuilder(existingId, prefillProdutoId){
-  const existing = existingId ? byId(state.orcamentos, existingId) : null;
-  const draft = {
-    cliente: existing?.cliente || '',
-    cliente_telefone: existing?.cliente_telefone || '',
-    itens: existing ? existing.itens.slice() : [],
+/* ================= PEDIDOS ================= */
+// Só orçamentos convertidos (status==='pedido') aparecem aqui — é a tela de gestão de
+// produção/pagamento/venda em si. O orçamento original continua visível (travado, só leitura) na
+// aba Orçamentos, com um link de volta pro número desse pedido.
+function renderPedidos(main){
+  const pedTodos = state.orcamentos.filter(o=> o.status==='pedido');
+  const filtro = state.filtroPedStatus || 'todos';
+  const filtroCliente = state.filtroPedCliente || '';
+  const filtroVendedor = state.filtroPedVendedor || 'todos';
+  let peds = filtro==='todos' ? pedTodos : pedTodos.filter(o=> statusPedido(o)===filtro);
+  if(filtroCliente.trim()) peds = peds.filter(o=> (o.cliente||'').toLowerCase().includes(filtroCliente.trim().toLowerCase()));
+  if(filtroVendedor!=='todos') peds = peds.filter(o=> (o.vendedor_pedido_id||'')===filtroVendedor);
+  const contagemPed = {};
+  ['aberto','em_producao','pronto','entregue','cancelado'].forEach(v=>{ contagemPed[v] = pedTodos.filter(o=>statusPedido(o)===v).length; });
+
+  main.innerHTML = `${offlineBanner()}
+    <div class="row" style="justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+      <p class="section-label" style="margin-bottom:0;">${peds.length} pedido${peds.length!==1?'s':''}</p>
+      <div class="row" style="gap:6px; flex-wrap:wrap;">
+        <button class="btn btn-sm ${filtro==='todos'?'btn-primary':''}" data-filtro-ped="todos">Todos (${pedTodos.length})</button>
+        ${PEDIDO_STAGES.map(s=>`<button class="btn btn-sm ${filtro===s.v?'btn-primary':''}" data-filtro-ped="${s.v}">${s.label} (${contagemPed[s.v]})</button>`).join('')}
+        <button class="btn btn-sm ${filtro==='cancelado'?'btn-primary':''}" data-filtro-ped="cancelado">Cancelados (${contagemPed.cancelado})</button>
+      </div>
+    </div>
+    ${filtrosClienteVendedorHtml('filtroPedCliente', 'filtroPedVendedor', filtroCliente, filtroVendedor)}
+    <div class="stack" id="pedList"></div>`;
+  document.querySelectorAll('[data-filtro-ped]').forEach(b=> b.addEventListener('click', ()=>{ state.filtroPedStatus = b.dataset.filtroPed; renderMain(); }));
+  document.getElementById('filtroPedCliente').addEventListener('input', (e)=>{ state.filtroPedCliente = e.target.value; renderMain(); });
+  document.getElementById('filtroPedVendedor').addEventListener('change', (e)=>{ state.filtroPedVendedor = e.target.value; renderMain(); });
+
+  const list = document.getElementById('pedList');
+  if(pedTodos.length===0){
+    list.innerHTML = `<div class="empty">${iconEmptyBox()}<h3>Nenhum pedido ainda</h3><p>Converta um orçamento aprovado pelo cliente em pedido, na aba Orçamentos.</p></div>`;
+  } else if(peds.length===0){
+    list.innerHTML = `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum pedido encontrado com esses filtros.</p>`;
+  } else {
+    list.innerHTML = peds.map(o=>{
+      const sp = statusPedido(o);
+      const expanded = state.expandedOrc===o.id;
+      const metaTxt = [
+        o.pedido_numero ? `Pedido #${o.pedido_numero}` : null,
+        new Date(o.criado_em).toLocaleDateString('pt-BR'),
+        `${o.itens.length} ite${o.itens.length!==1?'ns':'m'}`,
+        o.vendedor_pedido_nome || null,
+      ].filter(Boolean).join(' · ');
+      const itensHtml = expanded ? `<div class="stack" style="margin-top:10px;">${o.itens.map(it=>`
+        <div class="list-line"><span>${it.nome} × ${fmtNum(it.quantidade,0)}</span><span class="mono">${fmtBRL(it.preco_unit*it.quantidade)}</span></div>
+      `).join('')}
+      ${o.desconto_kit_total>0 ? `<div class="list-line"><span>Subtotal (sem desconto)</span><span class="mono">${fmtBRL(o.subtotal)}</span></div>` : ''}
+      ${(o.desconto_kit_linhas&&o.desconto_kit_linhas.length) ? o.desconto_kit_linhas.map(l=>`
+        <div class="list-line" style="color:var(--accent);"><span>Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%)</span><span class="mono">− ${fmtBRL(l.desconto)}</span></div>
+      `).join('') : ''}
+      <p style="font-size:.78rem; color:var(--text-muted); margin:10px 0 0;">${o.orcamento_numero?`A partir do Orçamento #${o.orcamento_numero}`:'Orçamento original'}</p>
+      <div class="row" style="margin-top:10px; align-items:center; gap:8px; flex-wrap:wrap;">
+        ${sp==='cancelado' ? `
+          <span class="badge badge-danger">Pedido cancelado</span>
+          <button class="btn btn-sm" data-reabrir-pedido="${o.id}">Reabrir pedido</button>
+        ` : `
+          <label style="font-size:.78rem; color:var(--text-muted);">Status do pedido:</label>
+          <select class="ipt" style="max-width:180px;" data-status-pedido="${o.id}">
+            ${PEDIDO_STAGES.map(s=>`<option value="${s.v}" ${sp===s.v?'selected':''}>${s.label}</option>`).join('')}
+          </select>
+        `}
+        <button class="btn btn-sm" data-toggle-pago="${o.id}">${o.pago?'Desmarcar pagamento':'Marcar como pago'}</button>
+      </div>
+      <div class="row" style="margin-top:8px; align-items:center; gap:8px; flex-wrap:wrap;">
+        <label style="font-size:.78rem; color:var(--text-muted);">Vendedor do pedido:</label>
+        <select class="ipt" style="max-width:200px;" data-vendedor-pedido="${o.id}">${vendedorOptionsHtml(o.vendedor_pedido_id)}</select>
+      </div>
+      <div class="row" style="margin-top:8px; flex-wrap:wrap; gap:8px;">
+        <button class="btn btn-sm" style="background:var(--accent); border-color:var(--accent); color:var(--accent-ink);" data-whatsapp="${o.id}">Enviar por WhatsApp</button>
+        <button class="btn btn-sm" data-copy="${o.id}">Copiar resumo</button>
+        <button class="btn btn-sm" data-copiar-orc="${o.id}">Copiar orçamento</button>
+        <button class="btn btn-sm btn-ghost" data-reverter-pedido="${o.id}">Reverter para orçamento</button>
+        ${sp!=='cancelado' ? `<button class="btn btn-sm btn-ghost" data-cancelar-pedido="${o.id}">Cancelar pedido</button>` : ''}
+        <button class="btn btn-sm btn-ghost" data-del-orc="${o.id}">Excluir</button>
+      </div>
+      </div>` : '';
+      return `<div class="card${expanded?' expanded':''}">
+        <div class="row" style="cursor:pointer;" data-toggle-orc="${o.id}">
+          <div style="flex:1;">
+            <h3 style="font-family:'IBM Plex Sans'; font-size:1rem; font-weight:600;">${o.cliente || 'Sem cliente'}</h3>
+            <div class="meta" style="font-size:.76rem;color:var(--text-muted);">${metaTxt}</div>
+          </div>
+          <span class="badge ${PEDIDO_BADGE_CLASS[sp]}">${PEDIDO_BADGE_LABEL[sp]}</span>
+          ${o.pago ? '<span class="badge badge-accent">Pago</span>' : ''}
+          <span class="mono" style="font-weight:600;">${fmtBRL(o.total)}</span>
+        </div>
+        ${itensHtml}
+      </div>`;
+    }).join('');
+
+    list.querySelectorAll('[data-toggle-orc]').forEach(el=>{
+      el.addEventListener('click', ()=>{ const id=el.dataset.toggleOrc; state.expandedOrc = state.expandedOrc===id?null:id; renderMain(); });
+    });
+    list.querySelectorAll('[data-copy]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); copyOrcamentoResumo(el.dataset.copy); });
+    });
+    list.querySelectorAll('[data-whatsapp]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); enviarOrcamentoWhatsApp(el.dataset.whatsapp); });
+    });
+    list.querySelectorAll('[data-copiar-orc]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); copiarOrcamento(el.dataset.copiarOrc); });
+    });
+    list.querySelectorAll('[data-reverter-pedido]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); confirmThenAction(el, ()=>reverterPedido(el.dataset.reverterPedido), {confirmText:'Confirmar?', confirmClass:'btn-danger'}); });
+    });
+    list.querySelectorAll('[data-status-pedido]').forEach(el=>{
+      el.addEventListener('click', (e)=> e.stopPropagation());
+      el.addEventListener('change', (e)=>{ e.stopPropagation(); setStatusPedido(el.dataset.statusPedido, el.value); });
+    });
+    list.querySelectorAll('[data-vendedor-pedido]').forEach(el=>{
+      el.addEventListener('click', (e)=> e.stopPropagation());
+      el.addEventListener('change', (e)=>{ e.stopPropagation(); setVendedorPedido(el.dataset.vendedorPedido, el.value); });
+    });
+    list.querySelectorAll('[data-toggle-pago]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); togglePagamento(el.dataset.togglePago); });
+    });
+    list.querySelectorAll('[data-cancelar-pedido]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); confirmThenAction(el, ()=>cancelarPedido(el.dataset.cancelarPedido), {confirmText:'Cancelar de vez?', confirmClass:'btn-danger'}); });
+    });
+    list.querySelectorAll('[data-reabrir-pedido]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); reabrirPedido(el.dataset.reabrirPedido); });
+    });
+    list.querySelectorAll('[data-del-orc]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); confirmThenDelete(el, ()=>deleteOrcamento(el.dataset.delOrc)); });
+    });
+  }
+}
+
+// Marca a venda como fechada, depois que o cliente aprovou o orçamento. Guarda quando isso
+// aconteceu (convertido_em) — não é usado em nenhum cálculo, é só registro. Pedido tem um botão
+// de reverter (reverterPedido) pra corrigir um clique errado sem precisar excluir e refazer tudo.
+function converterEmPedido(id){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  // status_pedido sempre reinicia em "aberto" (mesmo se esse pedido já tinha sido revertido antes
+  // e está sendo convertido de novo). "pago" é preservado: se o cliente já tinha pago antes de uma
+  // reversão por engano, não faz sentido esquecer isso ao converter de novo. O vendedor do PEDIDO é
+  // sempre quem está usando o app AGORA (vendedor atual) — pode ser diferente de quem criou o
+  // orçamento original (vendedor_id) —, e o número do pedido é atribuído só aqui, na conversão.
+  const vendedorAtual = state.vendedorAtualId ? byId(state.vendedores, state.vendedorAtualId) : null;
+  const data = {
+    status:'pedido', convertido_em: new Date().toISOString(), status_pedido:'aberto', pago: o.pago===true,
+    pedido_numero: proximoNumero('pedido_numero'),
+    vendedor_pedido_id: vendedorAtual?.id || null, vendedor_pedido_nome: vendedorAtual?.nome || '',
   };
+  if(!state.dbOk){ Object.assign(o, data); renderMain(); showToast('Orçamento convertido em pedido!'); return; }
+  state.db.collection('orcamentos').doc(id).update(data)
+    .then(()=>showToast('Orçamento convertido em pedido!'))
+    .catch(()=>showToast('Não deu pra converter agora'));
+}
+function reverterPedido(id){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  const data = {status:'enviado', convertido_em: null, status_pedido: null, pedido_numero: null, vendedor_pedido_id: null, vendedor_pedido_nome: null};
+  if(!state.dbOk){ Object.assign(o, data); renderMain(); showToast('Voltou a ser orçamento'); return; }
+  state.db.collection('orcamentos').doc(id).update(data)
+    .then(()=>showToast('Voltou a ser orçamento'))
+    .catch(()=>showToast('Não deu pra reverter agora'));
+}
+// Troca o vendedor ATRIBUÍDO AO PEDIDO (quem converteu/está tocando a venda) — independente do
+// vendedor que criou o orçamento original (vendedor_id, nunca muda depois de criado).
+function setVendedorPedido(id, vendedorId){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  const v = vendedorId ? byId(state.vendedores, vendedorId) : null;
+  const data = {vendedor_pedido_id: v?.id || null, vendedor_pedido_nome: v?.nome || ''};
+  if(!state.dbOk){ Object.assign(o, data); renderMain(); return; }
+  state.db.collection('orcamentos').doc(id).update(data).catch(()=>showToast('Não deu pra atualizar agora'));
+}
+// "Copiar orçamento" — pra um orçamento encerrado (virou pedido) ou pra duplicar rápido um
+// orçamento aberto. Sempre cria um orçamento NOVO (nunca edita o original): abre o construtor já
+// preenchido, recalculando os itens de catálogo pelas condições comerciais de HOJE e assumindo o
+// vendedor ATUAL como responsável pela cópia.
+function copiarOrcamento(id){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  openOrcamentoBuilder(null, null, o);
+}
+// Avança/retrocede o pedido pela sequência Aberto -> Em produção -> Pronto -> Entregue (o
+// vendedor escolhe livremente no seletor, sem precisar passar etapa por etapa nem confirmar).
+function setStatusPedido(id, novoStatus){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  if(!state.dbOk){ o.status_pedido = novoStatus; renderMain(); return; }
+  state.db.collection('orcamentos').doc(id).update({status_pedido:novoStatus}).catch(()=>showToast('Não deu pra atualizar agora'));
+}
+// Cancelar é a única transição de status_pedido com confirmação de 2 cliques — diferente de mudar
+// entre Aberto/Em produção/Pronto/Entregue, cancelar comunica "essa venda não vai acontecer".
+function cancelarPedido(id){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  const data = {status_pedido:'cancelado'};
+  if(!state.dbOk){ Object.assign(o, data); renderMain(); showToast('Pedido cancelado'); return; }
+  state.db.collection('orcamentos').doc(id).update(data)
+    .then(()=>showToast('Pedido cancelado'))
+    .catch(()=>showToast('Não deu pra cancelar agora'));
+}
+function reabrirPedido(id){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  const data = {status_pedido:'aberto'};
+  if(!state.dbOk){ Object.assign(o, data); renderMain(); showToast('Pedido reaberto'); return; }
+  state.db.collection('orcamentos').doc(id).update(data)
+    .then(()=>showToast('Pedido reaberto'))
+    .catch(()=>showToast('Não deu pra reabrir agora'));
+}
+// "Pago" é independente do status_pedido de propósito — o vendedor pode receber adiantado ou só na
+// entrega, então é um toggle à parte, não uma etapa.
+function togglePagamento(id){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  const novoPago = !o.pago;
+  const data = {pago: novoPago, pago_em: novoPago ? new Date().toISOString() : null};
+  if(!state.dbOk){ Object.assign(o, data); renderMain(); return; }
+  state.db.collection('orcamentos').doc(id).update(data).catch(()=>showToast('Não deu pra atualizar agora'));
+}
+
+function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
+  const existing = existingId ? byId(state.orcamentos, existingId) : null;
+  // Orçamento encerrado (já virou pedido) não pode mais ser editado — só copiado (ver "Copiar
+  // orçamento" na lista) ou gerenciado pela aba Pedidos.
+  if(existing && existing.status==='pedido'){
+    showToast('Esse orçamento está encerrado (virou pedido) — use "Copiar" pra criar um novo, se precisar');
+    return;
+  }
+  const base = copiarDe || existing;
+  const draft = {
+    cliente: base?.cliente || '',
+    cliente_telefone: base?.cliente_telefone || '',
+    vendedor_id: copiarDe ? (state.vendedorAtualId || null) : (existing?.vendedor_id || state.vendedorAtualId || null),
+    itens: [],
+  };
+  if(copiarDe){
+    // Recalcula pelas condições comerciais de agora: item de catálogo busca o preço ATUAL do
+    // produto (pode ter mudado desde o orçamento original); item avulso não tem "preço atual" pra
+    // buscar, então é copiado do jeito que estava.
+    draft.itens = copiarDe.itens.map(it=>{
+      const p = it.produto_id ? byId(state.produtos, it.produto_id) : null;
+      if(p){
+        const r = precoAjustado(p, state.config);
+        return {nome:p.nome, preco_unit:r.precoFinal, quantidade:it.quantidade, produto_id:p.id, impressora_id:p.impressora_id, incluido:true};
+      }
+      return {...it, incluido:true};
+    });
+  } else if(existing){
+    draft.itens = existing.itens.slice();
+  }
   if(prefillProdutoId){
     const p = byId(state.produtos, prefillProdutoId);
     if(p){
@@ -1286,6 +1638,7 @@ function openOrcamentoBuilder(existingId, prefillProdutoId){
     <div class="stack">
       <label class="field"><span>Cliente (opcional)</span><input class="ipt" id="oCliente" value="${draft.cliente}"></label>
       <label class="field"><span>WhatsApp do cliente (opcional)</span><input class="ipt" id="oClienteTelefone" type="tel" inputmode="tel" placeholder="(11) 91234-5678" value="${draft.cliente_telefone}"></label>
+      <label class="field"><span>Vendedor responsável</span><select class="ipt" id="oVendedor">${vendedorOptionsHtml(draft.vendedor_id)}</select></label>
 
       ${state.grupos.length ? `
       <div>
@@ -1480,19 +1833,28 @@ function openOrcamentoBuilder(existingId, prefillProdutoId){
     bd.querySelector('#oSalvar').addEventListener('click', ()=>{
       const cliente = bd.querySelector('#oCliente').value.trim();
       const cliente_telefone = bd.querySelector('#oClienteTelefone').value.trim();
+      const vendedorSel = bd.querySelector('#oVendedor').value;
+      const vendedor_id = vendedorSel || null;
+      const vendedor_nome = vendedor_id ? (byId(state.vendedores, vendedor_id)?.nome || '') : '';
       const itensFinais = draft.itens.filter(it=>it.incluido!==false).map(({incluido, ...rest})=>rest);
       if(itensFinais.length===0){ showToast('Selecione pelo menos um item'); return; }
       const subtotal = itensFinais.reduce((s,it)=>s+it.preco_unit*it.quantidade,0);
       const kit = calcularDescontosKit(itensFinais, state.grupos, state.promocoes);
       const total = subtotal - kit.total;
-      const data = {cliente, cliente_telefone, itens: itensFinais, subtotal, desconto_kit_total: kit.total, desconto_kit_linhas: kit.linhas, total, status: existing?.status || 'rascunho', criado_em: existing?.criado_em || new Date().toISOString()};
+      const data = {
+        cliente, cliente_telefone, vendedor_id, vendedor_nome,
+        itens: itensFinais, subtotal, desconto_kit_total: kit.total, desconto_kit_linhas: kit.linhas, total,
+        status: existing?.status || 'rascunho', criado_em: existing?.criado_em || new Date().toISOString(),
+      };
+      // Número sequencial só é atribuído na criação — orçamento editado mantém o número que já tinha.
+      if(!existing) data.orcamento_numero = proximoNumero('orcamento_numero');
       if(!state.dbOk){
         if(existing){ Object.assign(existing, data); } else { data.id=uid(); state.orcamentos=[data, ...state.orcamentos]; }
-        closeModal(); state.tab='orcamentos'; renderNav(); renderMain(); showToast('Salvo (modo local)');
+        closeModal(); state.tab='orcamentos'; state.expandedOrc=null; renderNav(); renderMain(); showToast('Salvo (modo local)');
         return;
       }
       const p = existing ? state.db.collection('orcamentos').doc(existing.id).update(data) : state.db.collection('orcamentos').add(data);
-      p.then(()=>{ closeModal(); state.tab='orcamentos'; renderNav(); renderMain(); showToast('Orçamento salvo'); })
+      p.then(()=>{ closeModal(); state.tab='orcamentos'; state.expandedOrc=null; renderNav(); renderMain(); showToast('Orçamento salvo'); })
        .catch(()=> showToast('Não deu pra salvar agora'));
     });
   });
@@ -1597,6 +1959,122 @@ function deleteCliente(id){
   state.db.collection('clientes').doc(id).delete().then(()=>showToast('Cliente removido')).catch(()=>showToast('Não deu pra excluir agora'));
 }
 
+/* ================= VENDEDORES ================= */
+// Cadastro simples (nome + contato opcional + ativo/inativo), gerenciado dentro da página única
+// "Ajustes" (ver renderConfig) — não é uma aba própria de topo, já que configurar vendedores é
+// raro (diferente de Clientes/Orçamentos, mexidos toda hora).
+// "Inativo" permite parar de oferecer um vendedor pra escolher em orçamentos/pedidos NOVOS sem
+// apagar quem já vendeu algo no passado (o nome continua salvo nos registros antigos).
+function openVendedorEditor(id, onSaved){
+  const existing = id ? byId(state.vendedores, id) : null;
+  openModal(existing?'Editar vendedor':'Novo vendedor', `
+    <div class="stack">
+      <label class="field"><span>Nome<span class="req">*</span></span><input class="ipt" id="vNome" value="${existing?.nome||''}" placeholder="Ex.: Danilo"></label>
+      <label class="field"><span>Telefone</span><input class="ipt" id="vTelefone" type="tel" inputmode="tel" placeholder="(11) 91234-5678" value="${existing?.telefone||''}"></label>
+      <label class="field"><span>E-mail</span><input class="ipt" id="vEmail" type="email" placeholder="vendedor@email.com" value="${existing?.email||''}"></label>
+      <label class="row" style="gap:8px; cursor:pointer;">
+        <input type="checkbox" id="vAtivo" style="width:18px;height:18px;flex:none;" ${(!existing || existing.ativo!==false)?'checked':''}>
+        <span style="font-size:.86rem;">Vendedor ativo (aparece pra escolher em orçamentos/pedidos novos)</span>
+      </label>
+      <button class="btn btn-primary btn-block" id="vSave">Salvar</button>
+    </div>
+  `, (bd)=>{
+    aplicarMascaraTelefone(bd.querySelector('#vTelefone'));
+    bd.querySelector('#vSave').addEventListener('click', async ()=>{
+      clearFieldErrors(bd);
+      const nome = bd.querySelector('#vNome').value.trim();
+      const telefone = bd.querySelector('#vTelefone').value.trim();
+      const email = bd.querySelector('#vEmail').value.trim();
+      let temErro = false;
+      if(!nome){ markFieldError(bd.querySelector('#vNome'), 'Dá um nome pro vendedor'); temErro=true; }
+      if(telefone && !telefoneValido(telefone)){ markFieldError(bd.querySelector('#vTelefone'), 'Telefone inválido — confira o DDD e o número'); temErro=true; }
+      if(email && !emailValido(email)){ markFieldError(bd.querySelector('#vEmail'), 'E-mail inválido'); temErro=true; }
+      if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(bd); return; }
+      const data = {nome, telefone, email, ativo: bd.querySelector('#vAtivo').checked};
+      if(!state.dbOk){
+        if(existing){ Object.assign(existing, data); } else { data.id=uid(); state.vendedores=[...state.vendedores, data]; }
+        closeModal(); renderMain(); showToast('Salvo (modo local)');
+        if(onSaved) onSaved(existing || data);
+        return;
+      }
+      try{
+        if(existing){ await state.db.collection('vendedores').doc(existing.id).update(data); closeModal(); showToast('Vendedor salvo'); if(onSaved) onSaved({id:existing.id, ...data}); }
+        else{ const ref = await state.db.collection('vendedores').add(data); closeModal(); showToast('Vendedor cadastrado'); if(onSaved) onSaved({id:ref.id, ...data}); }
+      }catch(e){ showToast('Não deu pra salvar agora'); }
+    });
+  });
+}
+function deleteVendedor(id){
+  if(!state.dbOk){ state.vendedores = state.vendedores.filter(v=>v.id!==id); renderMain(); return; }
+  state.db.collection('vendedores').doc(id).delete().then(()=>showToast('Vendedor removido')).catch(()=>showToast('Não deu pra excluir agora'));
+}
+
+// ---- "Vendedor atual" (quem está usando o app agora) ----
+// Além do login (que dá acesso ao app), existe uma identificação de "quem está cadastrando" nesse
+// aparelho — salva no localStorage, sempre trocável, serve pra pré-preencher quem criou um
+// orçamento ou converteu um pedido. Enquanto nenhum vendedor válido estiver escolhido nesse
+// aparelho, uma tela cobre o app inteiro pedindo pra escolher (ou cadastrar) um vendedor.
+function renderVendedorPickerHtml(){
+  const ativos = state.vendedores.filter(v=>v.ativo!==false);
+  return `
+    <div class="stack">
+      ${ativos.length ? ativos.map(v=>`<button type="button" class="btn btn-block" style="justify-content:flex-start;" data-escolher-vendedor="${v.id}">${v.nome}</button>`).join('')
+        : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum vendedor cadastrado ainda.</p>`}
+      <button type="button" class="btn btn-block btn-ghost" id="btnNovoVendedorGate">+ Cadastrar vendedor</button>
+    </div>`;
+}
+function wireVendedorPicker(container, onEscolher){
+  container.querySelectorAll('[data-escolher-vendedor]').forEach(b=> b.addEventListener('click', ()=> onEscolher(b.dataset.escolherVendedor)));
+  const btnNovo = container.querySelector('#btnNovoVendedorGate');
+  if(btnNovo) btnNovo.addEventListener('click', ()=> openVendedorEditor(null, (v)=> onEscolher(v.id)));
+}
+function mostrarGateVendedor(){
+  let el = document.getElementById('vendedorGate');
+  if(!el){ el = document.createElement('div'); el.id='vendedorGate'; el.className='modal-backdrop'; document.body.appendChild(el); }
+  // Sem clique-fora-fecha (diferente do modal comum) — não dá pra usar o app sem escolher.
+  el.innerHTML = `<div class="modal"><h2>Quem está usando agora?</h2>
+    <p style="font-size:.82rem;color:var(--text-muted); margin:-6px 0 12px;">Escolha seu nome pra identificar quem está cadastrando orçamentos e pedidos.</p>
+    ${renderVendedorPickerHtml()}</div>`;
+  wireVendedorPicker(el, (id)=> selecionarVendedorAtual(id));
+}
+function selecionarVendedorAtual(id){
+  state.vendedorAtualId = id;
+  try{ localStorage.setItem('vendedorAtualId', id); }catch(e){}
+  const g = document.getElementById('vendedorGate'); if(g) g.remove();
+  renderNav(); renderMain();
+}
+// Chamado no boot e sempre que a lista de vendedores mudar (chegada de dados do Firestore,
+// alguém sendo desativado etc.) — resolve o vendedor salvo no aparelho, se ainda for válido, ou
+// mostra a tela de escolha.
+function checarVendedorAtual(){
+  let atual = state.vendedorAtualId ? byId(state.vendedores, state.vendedorAtualId) : null;
+  if(!atual || atual.ativo===false){
+    let salvo = null;
+    try{ salvo = localStorage.getItem('vendedorAtualId'); }catch(e){}
+    const salvoValido = salvo ? byId(state.vendedores, salvo) : null;
+    if(salvoValido && salvoValido.ativo!==false){ state.vendedorAtualId = salvo; atual = salvoValido; }
+  }
+  if(atual && atual.ativo!==false){
+    const g = document.getElementById('vendedorGate'); if(g) g.remove();
+    renderVendedorAtualBadge();
+  } else {
+    mostrarGateVendedor();
+  }
+}
+function abrirTrocaVendedorModal(){
+  openModal('Trocar de vendedor', renderVendedorPickerHtml(), (bd)=>{
+    wireVendedorPicker(bd, (id)=>{ closeModal(); selecionarVendedorAtual(id); });
+  });
+}
+function renderVendedorAtualBadge(){
+  const box = document.getElementById('vendedorAtualBox');
+  if(!box) return;
+  const v = state.vendedorAtualId ? byId(state.vendedores, state.vendedorAtualId) : null;
+  box.innerHTML = v ? `<button class="textbtn" id="btnTrocarVendedor" style="white-space:nowrap;">${v.nome} · trocar</button>` : '';
+  const btn = document.getElementById('btnTrocarVendedor');
+  if(btn) btn.addEventListener('click', abrirTrocaVendedorModal);
+}
+
 /* ================= AJUSTES / CONFIG ================= */
 const CONFIG_META = [
   {k:'tarifa_kwh', label:'Tarifa de energia', unit:'R$/kWh', step:'0.00001', note:'Tarifa cheia da conta de energia (TUSD + TE, com impostos).'},
@@ -1647,7 +2125,13 @@ function renderConfig(main){
       <button class="btn btn-sm" id="btnAddPromo">+ Promoção</button>
     </div>
     <p style="font-size:.78rem;color:var(--text-muted);margin:0 0 10px;">Cada promoção liga um grupo a um período e a faixas de desconto por nº de produtos distintos no kit.</p>
-    <div class="stack" id="promoList"></div>
+    <div class="stack" id="promoList" style="margin-bottom:22px;"></div>
+
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">Vendedores cadastrados</p>
+      <button class="btn btn-sm" id="btnAddVendedor">+ Vendedor</button>
+    </div>
+    <div class="stack" id="vendedorList"></div>
   `;
   const isCurrencyUnit = u => u==='R$' || u==='R$/hora' || u==='R$/peça';
   document.getElementById('cfgGrid').innerHTML = CONFIG_META.map(m=>{
@@ -1727,6 +2211,19 @@ function renderConfig(main){
     </div>`;
   }).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhuma promoção cadastrada.</p>`;
 
+  const vendedorList = document.getElementById('vendedorList');
+  vendedorList.innerHTML = state.vendedores.length ? state.vendedores.map(v=>`
+    <div class="item-card">
+      <div class="top-row">
+        <div><h3>${v.nome}</h3><div class="meta">${[v.telefone, v.email].filter(Boolean).join(' · ') || 'Sem contato salvo'}</div></div>
+        <span class="badge ${v.ativo!==false?'badge-accent':'badge-muted'}">${v.ativo!==false?'Ativo':'Inativo'}</span>
+      </div>
+      <div class="actions">
+        <button class="btn btn-sm" data-edit-vendedor="${v.id}">Editar</button>
+        <button class="btn btn-sm btn-ghost" data-del-vendedor="${v.id}">Excluir</button>
+      </div>
+    </div>`).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum vendedor cadastrado.</p>`;
+
   document.getElementById('importarBackupInput').addEventListener('change', async (e)=>{
     const file = e.target.files[0];
     if(!file) return;
@@ -1769,6 +2266,10 @@ function renderConfig(main){
   document.getElementById('btnAddPromo').addEventListener('click', ()=>openPromoEditor(null));
   promoList.querySelectorAll('[data-edit-promo]').forEach(b=> b.addEventListener('click', ()=>openPromoEditor(b.dataset.editPromo)));
   promoList.querySelectorAll('[data-del-promo]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deletePromocao(b.dataset.delPromo))));
+
+  document.getElementById('btnAddVendedor').addEventListener('click', ()=>openVendedorEditor(null));
+  vendedorList.querySelectorAll('[data-edit-vendedor]').forEach(b=> b.addEventListener('click', ()=>openVendedorEditor(b.dataset.editVendedor)));
+  vendedorList.querySelectorAll('[data-del-vendedor]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteVendedor(b.dataset.delVendedor))));
 }
 
 function openConfigEditor(){
@@ -2083,6 +2584,9 @@ function boot(){
   bootStarted = true;
   renderNav();
   renderMain();
+  // Chamado já aqui (antes de saber se o Firestore vai conectar) pra cobrir o modo local também
+  // — sem isso, sem conexão, a tela de escolha de vendedor nunca apareceria.
+  checarVendedorAtual();
   try{
     const db = firebase.firestore();
     state.db = db; state.dbOk = true;
@@ -2132,6 +2636,12 @@ function boot(){
     db.collection('clientes').onSnapshot(qs=>{
       state.clientes = qs.docs.map(d=>({id:d.id, ...d.data()}));
       if(state.tab==='clientes') fullRerender();
+    }, ()=>{});
+
+    db.collection('vendedores').onSnapshot(qs=>{
+      state.vendedores = qs.docs.map(d=>({id:d.id, ...d.data()}));
+      checarVendedorAtual();
+      if(state.tab==='config') fullRerender();
     }, ()=>{});
 
   }catch(e){ /* stays in local fallback mode */ }
