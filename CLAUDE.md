@@ -7,12 +7,12 @@ Este projeto foi construído inteiramente em conversas com o Claude (Chat/Cowork
 - `docs/STANDALONE-SETUP.md` — como publicar a versão standalone.
 - `README.md` — visão geral da estrutura de pastas.
 
-## Duas versões do app, um código-fonte por vez
+## `app/biri-prints-3d-standalone.html` é a única versão oficial
 
-- `app/bancada-3d.html` é a versão completa e atualizada (era hospedada como Artifact do Claude). Usa um banco de dados que só existe na infraestrutura do Claude — ao rodar localmente/fora do Claude, ela não persiste dados.
-- `app/biri-prints-3d-standalone.html` usa Firebase + login, mas está atrasada em recursos (falta WhatsApp, Clientes, Vendedores/Pedidos, validação de telefone/e-mail — ver seção "Versão standalone" em `docs/bancada-3d-app.md`).
+Desde 2026-09-11, quando a standalone alcançou paridade funcional completa com a principal (confirmado função por função e pela suíte de testes — ver `docs/bancada-3d-app.md`):
 
-Ao implementar uma funcionalidade nova a pedido do usuário, considere se ela deve ir pras duas versões ou só numa — e pergunte se não estiver claro.
+- **`app/biri-prints-3d-standalone.html`** é a versão oficial, usada no dia a dia (Firebase + login de verdade). **Toda evolução a partir de agora — funcionalidade nova ou correção de bug — acontece só nela.**
+- **`app/bancada-3d.html`** (a versão hospedada como Artifact do Claude) é **legado**: não recebe mais funcionalidades novas, existe só como registro histórico de como o sistema evoluiu até a standalone alcançar paridade. **Não editar**, a menos que explicitamente pedido.
 
 ## Testes
 
