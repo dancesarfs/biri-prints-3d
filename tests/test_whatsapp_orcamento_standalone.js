@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
+const { passarPeloGateVendedorStandalone } = require('./test_helpers_standalone');
 
 function assert(cond, msg) {
   if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; }
@@ -32,6 +33,7 @@ async function login(page) {
   const fileUrl = 'file://' + path.resolve(__dirname, '..', 'app', 'biri-prints-3d-standalone.html');
   await page.goto(fileUrl);
   await login(page);
+  await passarPeloGateVendedorStandalone(page);
 
   // ---------- 1. normalização de telefone (unitário) ----------
   const norm = await page.evaluate(() => ({
