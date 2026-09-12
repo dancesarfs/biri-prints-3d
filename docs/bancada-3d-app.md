@@ -222,6 +222,19 @@ A partir daqui `app/biri-prints-3d-standalone.html` é a única versão oficial 
 
 Suíte completa validada 3x seguidas (25/25) antes de comitar; `tests/test_helpers_standalone.js` e os testes que abriam "Trocar de vendedor"/"Sair" direto pelo cabeçalho (agora escondido no celular) foram ajustados pra passar pelo novo menu compacto.
 
+### Filtros na tela de Catálogo (2026-09-12)
+Pedido do usuário: filtrar o catálogo por impressora, material, faixa de preço e nome, combináveis entre si. Implementado só na standalone (`app/bancada-3d.html` não foi tocado).
+
+1. **Impressora e material**: listas de checkboxes (`state.catalogoFiltros.impressoras`/`.materiais`, arrays de ids) — seleção múltipla dentro de cada dimensão é "OU" (mostra a peça se ela bater com qualquer impressora/material marcado), mas as duas dimensões entre si (e com faixa de preço e busca) são "E". Cada peça só tem uma impressora/material cadastrado (`impressora_id`/`material_id`); a seleção múltipla é do controle de filtro, não um novo campo de "compatível com várias impressoras" no produto.
+2. **Faixa de preço**: dois `<input type=range>` sobrepostos (truque clássico de slider duplo, com `pointer-events` habilitado só no thumb) + dois campos numéricos editáveis, sincronizados nos dois sentidos. Limites do slider (`catalogoLimitesPreco()`) recalculados a cada render a partir do preço final (`precoAjustado`) de **todas** as peças do catálogo (não só as já filtradas), senão o intervalo ia encolhendo e não dava pra ampliar de novo depois de filtrar.
+3. **Busca por nome**: parcial, case-insensitive e ignorando acentos (`normalizarBusca`, via `.normalize('NFD')`), com debounce de 300ms.
+4. **Combinação e UI geral**: "Limpar filtros" só aparece com algum filtro ativo; contagem mostra "N de M peças encontradas" quando filtrado; estado vazio dedicado ("Nenhuma peça encontrada... ajustar ou limpar os filtros") separado do estado vazio de catálogo sem nenhuma peça cadastrada.
+5. **Re-render**: checkboxes disparam `renderMain()` cheio (like os filtros já existentes de Orçamentos/Pedidos). Busca e faixa de preço usam uma função mais leve, `atualizarGridCatalogo()` (só recria o grid + contador + botão de limpar), pra não perder o foco do campo de busca nem interromper o arrasto do slider a cada re-render.
+6. **URL (query params)**: filtros sincronizados via `history.replaceState` (não `pushState` — evita empilhar histórico do navegador a cada tecla/arrasto). No boot, `lerFiltrosCatalogoDaURL()` lê os params antes do primeiro render e força a aba pra Catálogo se algum filtro de catálogo estiver na URL, pra um link compartilhado abrir já filtrado.
+7. **Mobile**: painel de filtros vira uma gaveta colapsável atrás de um botão "Filtros" (mesmo breakpoint de 720px já usado no resto do app); no desktop fica sempre visível, em grid de até 4 colunas.
+
+Suíte nova dedicada (`tests/test_catalogo_filtros_standalone.js`) cobrindo cada filtro isolado, a combinação "E", o estado vazio de filtro, "Limpar filtros", debounce da busca e persistência via URL (inclusive contra o backup real importado). Suíte completa validada 3x seguidas (26/26) antes de comitar.
+
 ### Testes automatizados (Playwright)
 Ver `tests/` — 18 arquivos de teste (`test_*.js`) rodando contra `app/bancada-3d.html` (17 suítes) e um (`test_standalone_firebase.js`) contra `app/biri-prints-3d-standalone.html` com um mock do Firebase. Rode `npm test` (ou `node tests/run-all.js`) depois de `npm install` — os testes usam o Chromium gerenciado pelo próprio Playwright (rode `npx playwright install chromium` na primeira vez).
 
@@ -243,6 +256,7 @@ Cobertura resumida por arquivo:
 - `test_validacao_contato.js`: máscara e validação de telefone/e-mail nos 3 formulários.
 - `test_menu_lateral.js`: menu lateral/gaveta, recolher/expandir, navegação por `data-nav`.
 - `test_standalone_firebase.js`: login, cadastro, catálogo e importação de backup na versão standalone, com Firebase mockado.
+- `test_catalogo_filtros_standalone.js`: filtros de catálogo (impressora, material, faixa de preço, busca por nome), combinação "E", estado vazio de filtro, "Limpar filtros", debounce e persistência via URL.
 
 ### Versão standalone fora do Claude (Firebase + login)
 Ver `docs/STANDALONE-SETUP.md` para o passo a passo completo de configuração (criar projeto Firebase, publicar no GitHub Pages, importar `data/biri-prints-3d-backup.json`).
