@@ -473,6 +473,9 @@ const state = {
   filtroPedVendedor: 'todos',
   catalogoFiltros: { impressoras: [], materiais: [], precoMin: null, precoMax: null, busca: '' },
   catalogoFiltrosAbertos: false,
+  filtroClienteNome: '',
+  filtroClienteEmail: '',
+  filtroClienteTelefone: '',
 };
 
 /* ---------------- icons (inline, stroke-based) ---------------- */
@@ -704,6 +707,14 @@ function aplicarMascaraTelefone(inputEl){
 function telefoneValido(valor){
   const d = String(valor||'').replace(/\D/g,'');
   return d.length===10 || d.length===11;
+}
+// Pra comparar telefones digitados de jeitos diferentes (com/sem parênteses, espaço, hífen,
+// com/sem "+55" na frente) — tira tudo que não é dígito e, se sobrar DDI 55 na frente
+// (12 ou 13 dígitos), tira ele também, deixando só DDD+número puro dos dois lados da comparação.
+function normalizarTelefoneBusca(valor){
+  let d = String(valor||'').replace(/\D/g,'');
+  if((d.length===12 || d.length===13) && d.startsWith('55')) d = d.slice(2);
+  return d;
 }
 function emailValido(valor){
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(valor||'').trim());
@@ -2455,24 +2466,87 @@ function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
 }
 
 /* ================= CLIENTES ================= */
+const CLIENTES_FILTROS_URL_KEYS = ['clienteNome', 'clienteEmail', 'clienteTelefone'];
+
+function clientesFiltroAtivo(){
+  return !!(state.filtroClienteNome || state.filtroClienteEmail || state.filtroClienteTelefone);
+}
+
+function clientesFiltrados(){
+  const nome = (state.filtroClienteNome||'').trim().toLowerCase();
+  const email = (state.filtroClienteEmail||'').trim().toLowerCase();
+  const telefone = normalizarTelefoneBusca(state.filtroClienteTelefone);
+  return state.clientes.filter(c=>{
+    if(nome && !(c.nome||'').toLowerCase().includes(nome)) return false;
+    if(email && !(c.email||'').toLowerCase().includes(email)) return false;
+    if(telefone && !normalizarTelefoneBusca(c.telefone).includes(telefone)) return false;
+    return true;
+  });
+}
+
+// Mesmo raciocínio do replaceState nos filtros de Catálogo: os filtros de Clientes mudam a cada
+// tecla (com debounce nos de e-mail/telefone), então pushState empilharia o histórico do
+// navegador inutilmente. O objetivo (compartilhar/voltar sem perder a seleção) é atendido por um
+// link recarregável.
+function sincronizarURLFiltrosClientes(){
+  const url = new URL(location.href);
+  CLIENTES_FILTROS_URL_KEYS.forEach(k=> url.searchParams.delete(k));
+  if(state.filtroClienteNome) url.searchParams.set('clienteNome', state.filtroClienteNome);
+  if(state.filtroClienteEmail) url.searchParams.set('clienteEmail', state.filtroClienteEmail);
+  if(state.filtroClienteTelefone) url.searchParams.set('clienteTelefone', state.filtroClienteTelefone);
+  history.replaceState(null, '', url.pathname + (url.searchParams.toString()?'?'+url.searchParams.toString():'') + url.hash);
+}
+
+// Chamado no boot(), antes do primeiro render — se o link trazia filtro de clientes, força a aba
+// pra Clientes (senão um link compartilhado abriria numa aba qualquer e o filtro ficaria escondido).
+function lerFiltrosClientesDaURL(){
+  const params = new URLSearchParams(location.search);
+  if(!CLIENTES_FILTROS_URL_KEYS.some(k=> params.has(k))) return;
+  state.filtroClienteNome = params.get('clienteNome') || '';
+  state.filtroClienteEmail = params.get('clienteEmail') || '';
+  state.filtroClienteTelefone = params.get('clienteTelefone') || '';
+  state.tab = 'clientes';
+}
+
 function renderClientes(main){
+  if(state.clientes.length===0){
+    main.innerHTML = `${offlineBanner()}<div class="empty">${iconClientes()}<h3>Nenhum cliente cadastrado</h3><p>Cadastre aqui, ou direto na tela de orçamento ao montar um novo.</p></div>`;
+    addFab('fabNovoCliente', ()=>openClienteEditor(null));
+    return;
+  }
+
   main.innerHTML = `${offlineBanner()}
-    <div class="row" style="justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-      <p class="section-label" style="margin-bottom:0;">${state.clientes.length} cliente${state.clientes.length!==1?'s':''}</p>
-      <input class="ipt" id="clienteBusca" placeholder="Buscar por nome..." style="max-width:260px;">
+    <div class="row" style="justify-content:space-between; margin-bottom:2px; flex-wrap:wrap; gap:8px;">
+      <p class="section-label" id="clienteContagem" style="margin-bottom:0;"></p>
+      <button class="btn btn-sm" id="btnLimparFiltrosClientes" style="display:none;">Limpar filtros</button>
+    </div>
+    <div class="row" style="gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+      <input class="ipt" id="clienteBusca" placeholder="Buscar por nome..." value="${state.filtroClienteNome||''}" style="max-width:220px;">
+      <input class="ipt" id="clienteBuscaEmail" placeholder="Buscar por e-mail..." value="${state.filtroClienteEmail||''}" style="max-width:220px;">
+      <input class="ipt" id="clienteBuscaTelefone" placeholder="Buscar por telefone..." value="${state.filtroClienteTelefone||''}" style="max-width:220px;">
     </div>
     <div class="stack" id="clienteList"></div>
   `;
-  const busca = document.getElementById('clienteBusca');
-  const renderLista = ()=>{
+
+  const buscaNome = document.getElementById('clienteBusca');
+  const buscaEmail = document.getElementById('clienteBuscaEmail');
+  const buscaTelefone = document.getElementById('clienteBuscaTelefone');
+  const contagemEl = document.getElementById('clienteContagem');
+  const limparBtn = document.getElementById('btnLimparFiltrosClientes');
+
+  function atualizarListaClientes(){
     const list = document.getElementById('clienteList');
-    if(state.clientes.length===0){
-      list.innerHTML = `<div class="empty">${iconClientes()}<h3>Nenhum cliente cadastrado</h3><p>Cadastre aqui, ou direto na tela de orçamento ao montar um novo.</p></div>`;
+    const filtrados = clientesFiltrados();
+    const ativo = clientesFiltroAtivo();
+    contagemEl.textContent = ativo
+      ? `${filtrados.length} de ${state.clientes.length} cliente${state.clientes.length>1?'s':''} encontrado${filtrados.length===1?'':'s'}`
+      : `${state.clientes.length} cliente${state.clientes.length!==1?'s':''}`;
+    limparBtn.style.display = ativo ? '' : 'none';
+    if(filtrados.length===0){
+      list.innerHTML = `<div class="empty">${iconClientes()}<h3>Nenhum cliente encontrado</h3><p>Tenta ajustar ou limpar os filtros pra ver outros clientes cadastrados.</p></div>`;
       return;
     }
-    const termo = busca.value.trim().toLowerCase();
-    const filtrados = termo ? state.clientes.filter(c=> c.nome.toLowerCase().includes(termo)) : state.clientes;
-    list.innerHTML = filtrados.length ? filtrados.map(c=>`
+    list.innerHTML = filtrados.map(c=>`
       <div class="item-card">
         <div class="top-row">
           <div><h3>${c.nome}</h3><div class="meta">${[c.telefone, c.email].filter(Boolean).join(' · ') || 'Sem contato salvo'}</div></div>
@@ -2486,12 +2560,47 @@ function renderClientes(main){
           <button class="btn btn-sm btn-ghost" data-del-cliente="${c.id}">Excluir</button>
         </div>
       </div>
-    `).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum cliente encontrado com esse nome.</p>`;
+    `).join('');
     list.querySelectorAll('[data-edit-cliente]').forEach(b=> b.addEventListener('click', ()=>openClienteEditor(b.dataset.editCliente)));
     list.querySelectorAll('[data-del-cliente]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteCliente(b.dataset.delCliente))));
-  };
-  renderLista();
-  busca.addEventListener('input', renderLista);
+  }
+  atualizarListaClientes();
+
+  buscaNome.addEventListener('input', ()=>{
+    state.filtroClienteNome = buscaNome.value;
+    sincronizarURLFiltrosClientes();
+    atualizarListaClientes();
+  });
+
+  let emailTimeout = null;
+  buscaEmail.addEventListener('input', ()=>{
+    const valor = buscaEmail.value;
+    clearTimeout(emailTimeout);
+    emailTimeout = setTimeout(()=>{
+      state.filtroClienteEmail = valor;
+      sincronizarURLFiltrosClientes();
+      atualizarListaClientes();
+    }, 300);
+  });
+
+  let telefoneTimeout = null;
+  buscaTelefone.addEventListener('input', ()=>{
+    const valor = buscaTelefone.value;
+    clearTimeout(telefoneTimeout);
+    telefoneTimeout = setTimeout(()=>{
+      state.filtroClienteTelefone = valor;
+      sincronizarURLFiltrosClientes();
+      atualizarListaClientes();
+    }, 300);
+  });
+
+  limparBtn.addEventListener('click', ()=>{
+    state.filtroClienteNome = '';
+    state.filtroClienteEmail = '';
+    state.filtroClienteTelefone = '';
+    sincronizarURLFiltrosClientes();
+    renderMain();
+  });
 
   addFab('fabNovoCliente', ()=>openClienteEditor(null));
 }
@@ -3215,6 +3324,7 @@ function boot(){
   if(bootStarted) return;
   bootStarted = true;
   lerFiltrosCatalogoDaURL();
+  lerFiltrosClientesDaURL();
   wireSidebarChrome();
   renderNav();
   renderMain();
