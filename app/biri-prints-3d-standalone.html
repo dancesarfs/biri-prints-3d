@@ -234,16 +234,20 @@
   .badge-pedido{background:var(--accent); color:var(--accent-ink); border:1px solid var(--accent);}
   .badge-danger{background:var(--danger-soft); color:var(--danger); border:1px solid var(--danger-soft);}
 
-  .cards-grid{display:grid; grid-template-columns:1fr; gap:12px;}
-  @media (min-width:640px){ .cards-grid{grid-template-columns:1fr 1fr;} }
-  @media (min-width:960px){ .cards-grid{grid-template-columns:1fr 1fr 1fr;} }
+  /* auto-fill + minmax (não breakpoints fixos de viewport): o número de colunas se ajusta à
+     largura real do container (main), não à da janela — então recolher/expandir a sidebar (ou
+     redimensionar a janela) realinha o grid sozinho, sem sobrar espaço morto nem cortar card.
+     minmax(240px, 1fr) — e não só "1fr 1fr 1fr" — evita que o conteúdo de um card (preço em
+     white-space:nowrap, por ex.) force a coluna a crescer além do disponível e estoure scroll
+     horizontal na página inteira. */
+  .cards-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px;}
 
-  .item-card{background:var(--surface); border:1px solid var(--border); border-radius:13px; padding:14px; box-shadow:var(--shadow);}
+  .item-card{background:var(--surface); border:1px solid var(--border); border-radius:13px; padding:14px; box-shadow:var(--shadow); min-width:0;}
   .item-card .top-row{display:flex; justify-content:space-between; gap:10px; align-items:flex-start;}
   .item-card h3{font-size:1rem; font-weight:600; font-family:'IBM Plex Sans';}
   .item-card .meta{font-size:.76rem; color:var(--text-muted); margin-top:2px;}
   .item-card .price{font-family:'IBM Plex Mono'; font-weight:600; font-size:1.15rem; white-space:nowrap;}
-  .item-card .actions{display:flex; gap:8px; margin-top:12px;}
+  .item-card .actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
 
   .empty{text-align:center; padding:48px 16px; color:var(--text-muted);}
   .empty svg{width:40px; height:40px; margin-bottom:10px; opacity:.5;}

@@ -246,6 +246,15 @@ Pedido do usuário: filtrar clientes por e-mail e telefone, combináveis entre s
 
 Suíte nova dedicada (`tests/test_clientes_filtros_standalone.js`) cobrindo cada filtro isolado, a combinação "E" (inclusive com o filtro de nome já existente), a normalização de telefone (parênteses/espaço/hífen/+55), debounce, estado vazio de filtro, "Limpar filtros" e persistência via URL. Suíte completa validada 3x seguidas (27/27) antes de comitar.
 
+### Bug de layout: grid de cards do Catálogo estourava scroll horizontal (2026-09-12)
+Sintoma reportado: com o catálogo real (5 peças) importado, o grid de cards não ocupava 100% da largura disponível — sobrava espaço morto de um lado e cortava/vazava card do outro, com barra de rolagem horizontal na tela inteira. Acontecia em faixas específicas de largura (não em qualquer uma), incluindo com a sidebar expandida num desktop comum.
+
+Duas causas, as duas em `app/biri-prints-3d-standalone.html` (só a standalone tem esse Catálogo com filtros — `bancada-3d.html` não foi tocado):
+1. **`.cards-grid` usava breakpoints de viewport, não do container**: `grid-template-columns:1fr 1fr 1fr` a partir de `min-width:960px` (media query) decide o nº de colunas pela largura da **janela**, não da área de conteúdo real (que muda com a sidebar expandida/recolhida). Além disso, `1fr` puro (sem `minmax`) deixa a coluna crescer pelo conteúdo (`min-width:auto` do item) se algo não encolher — no caso, o preço em `white-space:nowrap`. Trocado por `grid-template-columns:repeat(auto-fill, minmax(240px, 1fr))`, que calcula o nº de colunas pela largura real do container e nunca deixa a soma passar de 100%; `.item-card` ganhou `min-width:0` pra não deixar o conteúdo forçar a coluna a crescer além disso.
+2. **Botões do card (`.actions`) não quebravam linha**: `display:flex` sem `flex-wrap` — em larguras de coluna intermediárias (ex.: ~230–350px, entre 2 e 3 colunas), "Editar" + "Duplicar" + "+ Orçamento" + "Excluir" não cabiam numa linha só e estouravam a largura do card (e por tabela o da página inteira). Adicionado `flex-wrap:wrap`.
+
+Validado manualmente com o backup real importado, em 8 larguras (390px a 1920px) e com a sidebar expandida/recolhida — sem scroll horizontal em nenhuma combinação, grid sempre ocupando 100% do container disponível. Suíte completa validada 3x seguidas (27/27) antes de comitar (mudança só de CSS, sem alteração de comportamento/dados).
+
 ### Testes automatizados (Playwright)
 Ver `tests/` — 18 arquivos de teste (`test_*.js`) rodando contra `app/bancada-3d.html` (17 suítes) e um (`test_standalone_firebase.js`) contra `app/biri-prints-3d-standalone.html` com um mock do Firebase. Rode `npm test` (ou `node tests/run-all.js`) depois de `npm install` — os testes usam o Chromium gerenciado pelo próprio Playwright (rode `npx playwright install chromium` na primeira vez).
 
