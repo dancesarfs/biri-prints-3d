@@ -235,6 +235,17 @@ Pedido do usuário: filtrar o catálogo por impressora, material, faixa de preç
 
 Suíte nova dedicada (`tests/test_catalogo_filtros_standalone.js`) cobrindo cada filtro isolado, a combinação "E", o estado vazio de filtro, "Limpar filtros", debounce da busca e persistência via URL (inclusive contra o backup real importado). Suíte completa validada 3x seguidas (26/26) antes de comitar.
 
+### Filtros na tela de Clientes (2026-09-12)
+Pedido do usuário: filtrar clientes por e-mail e telefone, combináveis entre si (e com a busca por nome que já existia na tela). Mesma abordagem da leva de filtros do Catálogo, implementado só na standalone.
+
+1. **E-mail**: campo de texto, parcial e case-insensitive, com debounce de 300ms.
+2. **Telefone**: campo de texto, parcial, com debounce de 300ms — normalizado antes de comparar (`normalizarTelefoneBusca`: tira tudo que não é dígito e, se sobrar DDI 55 na frente, tira ele também), pra o filtro funcionar igual não importa se o telefone foi digitado com parênteses/espaço/hífen/"+55" ou não. A mesma normalização é aplicada nos dois lados da comparação (valor digitado e valor salvo).
+3. **Nome**: filtro que já existia na tela (`#clienteBusca`) — sem mudar seu comportamento (parcial, case-insensitive, sem debounce, já que é uma lista pequena filtrada localmente), só passou a viver em `state.filtroClienteNome` (antes lia direto do DOM) pra combinar com os filtros novos e entrar na URL.
+4. **Combinação e UI geral**: os três filtros são "E" entre si. "Limpar filtros" só aparece com algum ativo; contagem mostra "N de M clientes encontrados"; estado vazio dedicado ("Nenhum cliente encontrado... ajustar ou limpar os filtros") separado do estado vazio de nenhum cliente cadastrado.
+5. **URL (query params)**: mesmo padrão do Catálogo — `history.replaceState`, e `lerFiltrosClientesDaURL()` no boot força a aba pra Clientes se algum filtro de cliente estiver na URL.
+
+Suíte nova dedicada (`tests/test_clientes_filtros_standalone.js`) cobrindo cada filtro isolado, a combinação "E" (inclusive com o filtro de nome já existente), a normalização de telefone (parênteses/espaço/hífen/+55), debounce, estado vazio de filtro, "Limpar filtros" e persistência via URL. Suíte completa validada 3x seguidas (27/27) antes de comitar.
+
 ### Testes automatizados (Playwright)
 Ver `tests/` — 18 arquivos de teste (`test_*.js`) rodando contra `app/bancada-3d.html` (17 suítes) e um (`test_standalone_firebase.js`) contra `app/biri-prints-3d-standalone.html` com um mock do Firebase. Rode `npm test` (ou `node tests/run-all.js`) depois de `npm install` — os testes usam o Chromium gerenciado pelo próprio Playwright (rode `npx playwright install chromium` na primeira vez).
 
@@ -257,6 +268,7 @@ Cobertura resumida por arquivo:
 - `test_menu_lateral.js`: menu lateral/gaveta, recolher/expandir, navegação por `data-nav`.
 - `test_standalone_firebase.js`: login, cadastro, catálogo e importação de backup na versão standalone, com Firebase mockado.
 - `test_catalogo_filtros_standalone.js`: filtros de catálogo (impressora, material, faixa de preço, busca por nome), combinação "E", estado vazio de filtro, "Limpar filtros", debounce e persistência via URL.
+- `test_clientes_filtros_standalone.js`: filtros de clientes (e-mail, telefone normalizado, nome), combinação "E", estado vazio de filtro, "Limpar filtros", debounce e persistência via URL.
 
 ### Versão standalone fora do Claude (Firebase + login)
 Ver `docs/STANDALONE-SETUP.md` para o passo a passo completo de configuração (criar projeto Firebase, publicar no GitHub Pages, importar `data/biri-prints-3d-backup.json`).
