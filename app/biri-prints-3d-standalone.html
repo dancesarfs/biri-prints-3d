@@ -249,6 +249,45 @@
   .empty svg{width:40px; height:40px; margin-bottom:10px; opacity:.5;}
   .empty p{margin:4px 0 14px; font-size:.88rem;}
 
+  .filtros-toggle-mobile{display:none;}
+  @media (max-width:719.98px){ .filtros-toggle-mobile{display:inline-flex;} }
+
+  .filtros-catalogo{
+    background:var(--surface); border:1px solid var(--border); border-radius:13px;
+    padding:14px; margin-bottom:14px; display:grid; grid-template-columns:1fr; gap:16px;
+  }
+  @media (min-width:640px){ .filtros-catalogo{grid-template-columns:1fr 1fr;} }
+  @media (min-width:960px){ .filtros-catalogo{grid-template-columns:1fr 1fr 1.3fr 1fr;} }
+  @media (max-width:719.98px){
+    .filtros-catalogo{display:none;}
+    .filtros-catalogo.aberto{display:grid;}
+  }
+  .filtro-titulo{font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.03em; color:var(--text-muted); margin-bottom:8px;}
+  .chk-list{display:flex; flex-direction:column; gap:8px; max-height:150px; overflow-y:auto;}
+  .chk-item{display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.86rem;}
+  .chk-item input{width:17px; height:17px; flex:none;}
+
+  .price-range-inputs{display:flex; gap:8px; margin-bottom:12px;}
+  .price-range-inputs .ipt{max-width:105px;}
+  .price-range-slider{position:relative; height:26px; display:flex; align-items:center;}
+  .price-range-track{position:absolute; left:0; right:0; height:4px; border-radius:99px; background:var(--border);}
+  .price-range-fill{position:absolute; height:4px; border-radius:99px; background:var(--accent);}
+  .price-range-slider input[type=range]{
+    position:absolute; left:0; right:0; width:100%; margin:0; height:26px;
+    -webkit-appearance:none; appearance:none; background:transparent; pointer-events:none;
+  }
+  .price-range-slider input[type=range]::-webkit-slider-runnable-track{background:transparent; height:26px;}
+  .price-range-slider input[type=range]::-moz-range-track{background:transparent; height:26px;}
+  .price-range-slider input[type=range]::-webkit-slider-thumb{
+    pointer-events:auto; -webkit-appearance:none; appearance:none; width:18px; height:18px;
+    border-radius:50%; background:var(--accent); border:2px solid var(--surface);
+    box-shadow:0 1px 3px rgba(0,0,0,.3); cursor:pointer; margin-top:0;
+  }
+  .price-range-slider input[type=range]::-moz-range-thumb{
+    pointer-events:auto; width:18px; height:18px; border-radius:50%; background:var(--accent);
+    border:2px solid var(--surface); box-shadow:0 1px 3px rgba(0,0,0,.3); cursor:pointer;
+  }
+
   .config-grid{display:grid; grid-template-columns:1fr; gap:10px;}
   @media (min-width:640px){ .config-grid{grid-template-columns:1fr 1fr;} }
   .spec{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px;}
@@ -432,6 +471,8 @@ const state = {
   filtroPedStatus: 'todos',
   filtroPedCliente: '',
   filtroPedVendedor: 'todos',
+  catalogoFiltros: { impressoras: [], materiais: [], precoMin: null, precoMax: null, busca: '' },
+  catalogoFiltrosAbertos: false,
 };
 
 /* ---------------- icons (inline, stroke-based) ---------------- */
@@ -462,6 +503,7 @@ function fmtTempo(horasDecimais){
 }
 const byId = (arr, id) => arr.find(x => x.id === id);
 const uid = () => Math.random().toString(36).slice(2, 10);
+const normalizarBusca = s => (s||'').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // Resolve gramatura/tempo pra uma peça numa impressora específica: usa o perfil salvo
 // pra essa impressora (produto.perfis_impressora[impressoraId]) quando existir, senão os valores padrão da peça.
@@ -963,50 +1005,100 @@ function saveCurrentCalcToCatalogo(){
 }
 
 /* ================= CATÁLOGO ================= */
-function renderCatalogo(main){
-  const produtos = state.produtos;
-  if(produtos.length===0){
-    main.innerHTML = `${offlineBanner()}<div class="empty">${iconLayers()}<h3>Nenhuma peça salva ainda</h3><p>Clique em "Adicionar Produto" pra calcular o preço e salvar sua primeira peça no catálogo.</p><button class="btn btn-primary" id="goCalc">Adicionar Produto</button></div>`;
-    document.getElementById('goCalc').addEventListener('click', abrirNovoProduto);
-    addFab('fabAdicionarProduto', abrirNovoProduto);
-    return;
-  }
-  main.innerHTML = `${offlineBanner()}
-    <div class="row" style="justify-content:space-between; margin-bottom:2px; gap:8px; flex-wrap:wrap;">
-      <p class="section-label" style="margin-bottom:0;">${produtos.length} peça${produtos.length>1?'s':''} no catálogo</p>
-      <div class="row" style="gap:8px; flex-wrap:wrap;">
-        <button class="btn btn-sm" id="btnCompartilharCatalogo">Compartilhar lista</button>
-      </div>
-    </div>
-    <div class="cards-grid" id="catGrid" style="margin-top:12px;"></div>`;
-  addFab('fabAdicionarProduto', abrirNovoProduto);
-  document.getElementById('btnCompartilharCatalogo').addEventListener('click', openCompartilharCatalogo);
-  const grid = document.getElementById('catGrid');
-  grid.innerHTML = produtos.map(p=>{
-    const material = byId(state.materiais, p.material_id);
-    const impressora = byId(state.impressoras, p.impressora_id);
-    const r = precoAjustado(p, state.config);
-    const ajusteLine = r.ajuste !== 0
-      ? `<div class="meta">Calculado ${fmtBRL(r.precoCalculado)} ${r.ajuste>0?'+':'−'} ${fmtBRL(Math.abs(r.ajuste))} de ajuste</div>` : '';
-    return `<div class="item-card">
-      <div class="top-row">
-        <div>
-          <h3>${p.nome}</h3>
-          <div class="meta">${material? material.nome+' · '+material.marca : 'material removido'} · ${fmtNum(p.gramatura,0)}g · ${fmtTempo(p.tempo_horas)}</div>
-          <div class="meta">${impressora ? '🖨️ '+impressora.nome : 'impressora removida'}</div>
-          ${ajusteLine}
-        </div>
-        <div class="price mono">${fmtBRL(r.precoFinal)}</div>
-      </div>
-      <div class="actions">
-        <button class="btn btn-sm" data-edit="${p.id}">Editar</button>
-        <button class="btn btn-sm" data-dup="${p.id}">Duplicar</button>
-        <button class="btn btn-sm" data-add-orc="${p.id}">+ Orçamento</button>
-        <button class="btn btn-sm btn-ghost" data-del="${p.id}">Excluir</button>
-      </div>
-    </div>`;
-  }).join('');
+const CATALOGO_FILTROS_URL_KEYS = ['impressoras', 'materiais', 'precoMin', 'precoMax', 'busca'];
 
+// Limites do slider de preço: sempre calculados a partir de TODAS as peças do catálogo
+// (não só as já filtradas), senão o intervalo do slider ia encolhendo à medida que o
+// usuário filtrasse — o que impediria voltar a ampliar a faixa depois.
+function catalogoLimitesPreco(){
+  const precos = state.produtos.map(p=> precoAjustado(p, state.config).precoFinal);
+  let lo = Math.floor(Math.min(...precos));
+  let hi = Math.ceil(Math.max(...precos));
+  if(lo===hi) hi = lo + 1; // evita slider de largura zero com 1 peça só ou preços todos iguais
+  return {lo, hi};
+}
+
+function catalogoFiltroAtivo(){
+  const f = state.catalogoFiltros;
+  return f.impressoras.length>0 || f.materiais.length>0 || !!f.busca || f.precoMin!=null || f.precoMax!=null;
+}
+
+function produtosFiltrados(){
+  const f = state.catalogoFiltros;
+  const termo = normalizarBusca(f.busca);
+  return state.produtos.filter(p=>{
+    if(f.impressoras.length>0 && !f.impressoras.includes(p.impressora_id)) return false;
+    if(f.materiais.length>0 && !f.materiais.includes(p.material_id)) return false;
+    if(termo && !normalizarBusca(p.nome).includes(termo)) return false;
+    const preco = precoAjustado(p, state.config).precoFinal;
+    if(f.precoMin!=null && preco < f.precoMin) return false;
+    if(f.precoMax!=null && preco > f.precoMax) return false;
+    return true;
+  });
+}
+
+// replaceState (não pushState) de propósito: os filtros mudam a cada tecla/arrasto de slider,
+// então empilhar isso no histórico do navegador tornaria o botão "voltar" inútil. O objetivo do
+// pedido ("compartilhar/voltar sem perder a seleção") é atendido por um link recarregável, não
+// por um histórico de undo passo a passo.
+function sincronizarURLFiltros(){
+  const f = state.catalogoFiltros;
+  const url = new URL(location.href);
+  CATALOGO_FILTROS_URL_KEYS.forEach(k=> url.searchParams.delete(k));
+  if(f.impressoras.length>0) url.searchParams.set('impressoras', f.impressoras.join(','));
+  if(f.materiais.length>0) url.searchParams.set('materiais', f.materiais.join(','));
+  if(f.precoMin!=null) url.searchParams.set('precoMin', f.precoMin);
+  if(f.precoMax!=null) url.searchParams.set('precoMax', f.precoMax);
+  if(f.busca) url.searchParams.set('busca', f.busca);
+  history.replaceState(null, '', url.pathname + (url.searchParams.toString()?'?'+url.searchParams.toString():'') + url.hash);
+}
+
+// Chamado no boot(), antes do primeiro render — se o link trazia filtros de catálogo, força a
+// aba pra Catálogo (senão um link compartilhado abriria numa aba qualquer e o filtro ficaria
+// escondido/sem efeito visível).
+function lerFiltrosCatalogoDaURL(){
+  const params = new URLSearchParams(location.search);
+  if(!CATALOGO_FILTROS_URL_KEYS.some(k=> params.has(k))) return;
+  const impressoras = params.get('impressoras');
+  const materiais = params.get('materiais');
+  const precoMin = params.get('precoMin');
+  const precoMax = params.get('precoMax');
+  state.catalogoFiltros = {
+    impressoras: impressoras ? impressoras.split(',').filter(Boolean) : [],
+    materiais: materiais ? materiais.split(',').filter(Boolean) : [],
+    precoMin: (precoMin!=null && precoMin!=='') ? Number(precoMin) : null,
+    precoMax: (precoMax!=null && precoMax!=='') ? Number(precoMax) : null,
+    busca: params.get('busca') || '',
+  };
+  state.tab = 'catalogo';
+}
+
+function produtoCardHtml(p){
+  const material = byId(state.materiais, p.material_id);
+  const impressora = byId(state.impressoras, p.impressora_id);
+  const r = precoAjustado(p, state.config);
+  const ajusteLine = r.ajuste !== 0
+    ? `<div class="meta">Calculado ${fmtBRL(r.precoCalculado)} ${r.ajuste>0?'+':'−'} ${fmtBRL(Math.abs(r.ajuste))} de ajuste</div>` : '';
+  return `<div class="item-card">
+    <div class="top-row">
+      <div>
+        <h3>${p.nome}</h3>
+        <div class="meta">${material? material.nome+' · '+material.marca : 'material removido'} · ${fmtNum(p.gramatura,0)}g · ${fmtTempo(p.tempo_horas)}</div>
+        <div class="meta">${impressora ? '🖨️ '+impressora.nome : 'impressora removida'}</div>
+        ${ajusteLine}
+      </div>
+      <div class="price mono">${fmtBRL(r.precoFinal)}</div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-sm" data-edit="${p.id}">Editar</button>
+      <button class="btn btn-sm" data-dup="${p.id}">Duplicar</button>
+      <button class="btn btn-sm" data-add-orc="${p.id}">+ Orçamento</button>
+      <button class="btn btn-sm btn-ghost" data-del="${p.id}">Excluir</button>
+    </div>
+  </div>`;
+}
+
+function wireCatGridButtons(grid){
   grid.querySelectorAll('[data-edit]').forEach(b=>{
     b.addEventListener('click', ()=> openProdutoEditor(b.dataset.edit));
   });
@@ -1018,6 +1110,181 @@ function renderCatalogo(main){
   });
   grid.querySelectorAll('[data-del]').forEach(b=>{
     b.addEventListener('click', ()=> confirmThenDelete(b, ()=> deleteProduto(b.dataset.del)));
+  });
+}
+
+function renderCatalogo(main){
+  const produtos = state.produtos;
+  if(produtos.length===0){
+    main.innerHTML = `${offlineBanner()}<div class="empty">${iconLayers()}<h3>Nenhuma peça salva ainda</h3><p>Clique em "Adicionar Produto" pra calcular o preço e salvar sua primeira peça no catálogo.</p><button class="btn btn-primary" id="goCalc">Adicionar Produto</button></div>`;
+    document.getElementById('goCalc').addEventListener('click', abrirNovoProduto);
+    addFab('fabAdicionarProduto', abrirNovoProduto);
+    return;
+  }
+
+  const f = state.catalogoFiltros;
+  const {lo, hi} = catalogoLimitesPreco();
+  const precoMinAtual = f.precoMin!=null ? f.precoMin : lo;
+  const precoMaxAtual = f.precoMax!=null ? f.precoMax : hi;
+
+  main.innerHTML = `${offlineBanner()}
+    <div class="row" style="justify-content:space-between; margin-bottom:2px; gap:8px; flex-wrap:wrap;">
+      <p class="section-label" id="catContagem" style="margin-bottom:0;"></p>
+      <div class="row" style="gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-sm filtros-toggle-mobile" id="btnToggleFiltrosCatalogo">Filtros</button>
+        <button class="btn btn-sm" id="btnLimparFiltrosCatalogo" style="display:none;">Limpar filtros</button>
+        <button class="btn btn-sm" id="btnCompartilharCatalogo">Compartilhar lista</button>
+      </div>
+    </div>
+    <div class="filtros-catalogo${state.catalogoFiltrosAbertos?' aberto':''}" id="filtrosCatalogoPanel">
+      <div>
+        <p class="filtro-titulo">Impressora</p>
+        <div class="chk-list">
+          ${state.impressoras.map(i=>`<label class="chk-item"><input type="checkbox" class="cat-filtro-impressora" value="${i.id}" ${f.impressoras.includes(i.id)?'checked':''}><span>${i.nome}</span></label>`).join('') || '<p class="meta">Nenhuma impressora cadastrada</p>'}
+        </div>
+      </div>
+      <div>
+        <p class="filtro-titulo">Material</p>
+        <div class="chk-list">
+          ${state.materiais.map(m=>`<label class="chk-item"><input type="checkbox" class="cat-filtro-material" value="${m.id}" ${f.materiais.includes(m.id)?'checked':''}><span>${m.nome}</span></label>`).join('') || '<p class="meta">Nenhum material cadastrado</p>'}
+        </div>
+      </div>
+      <div>
+        <p class="filtro-titulo">Faixa de preço</p>
+        <div class="price-range-inputs">
+          <input class="ipt" type="number" id="catPrecoMinInput" min="${lo}" max="${hi}" step="1" value="${precoMinAtual}">
+          <input class="ipt" type="number" id="catPrecoMaxInput" min="${lo}" max="${hi}" step="1" value="${precoMaxAtual}">
+        </div>
+        <div class="price-range-slider">
+          <div class="price-range-track"><div class="price-range-fill" id="catPrecoFill"></div></div>
+          <input type="range" id="catPrecoMinRange" min="${lo}" max="${hi}" step="1" value="${precoMinAtual}">
+          <input type="range" id="catPrecoMaxRange" min="${lo}" max="${hi}" step="1" value="${precoMaxAtual}">
+        </div>
+      </div>
+      <div>
+        <p class="filtro-titulo">Buscar por nome</p>
+        <input class="ipt" id="catBuscaInput" placeholder="Buscar por nome..." value="${f.busca||''}" style="width:100%;">
+      </div>
+    </div>
+    <div class="cards-grid" id="catGrid" style="margin-top:12px;"></div>`;
+
+  addFab('fabAdicionarProduto', abrirNovoProduto);
+  document.getElementById('btnCompartilharCatalogo').addEventListener('click', openCompartilharCatalogo);
+
+  const painel = document.getElementById('filtrosCatalogoPanel');
+  document.getElementById('btnToggleFiltrosCatalogo').addEventListener('click', ()=>{
+    state.catalogoFiltrosAbertos = !state.catalogoFiltrosAbertos;
+    painel.classList.toggle('aberto', state.catalogoFiltrosAbertos);
+  });
+
+  const contagemEl = document.getElementById('catContagem');
+  const limparBtn = document.getElementById('btnLimparFiltrosCatalogo');
+  const grid = document.getElementById('catGrid');
+  const minRange = document.getElementById('catPrecoMinRange');
+  const maxRange = document.getElementById('catPrecoMaxRange');
+  const minInput = document.getElementById('catPrecoMinInput');
+  const maxInput = document.getElementById('catPrecoMaxInput');
+  const fill = document.getElementById('catPrecoFill');
+
+  function atualizarTrackFill(){
+    const min = Number(minRange.value), max = Number(maxRange.value);
+    const pctMin = ((min-lo)/(hi-lo))*100;
+    const pctMax = ((max-lo)/(hi-lo))*100;
+    fill.style.left = pctMin + '%';
+    fill.style.width = Math.max(0, pctMax-pctMin) + '%';
+  }
+  atualizarTrackFill();
+
+  // Re-render "leve": só o grid + contador + botão de limpar. Usado pela busca (debounced) e
+  // pelo slider/campos de preço, pra não recriar o painel de filtros a cada tecla/arrasto — o
+  // que perderia o foco do campo de texto ou interromperia o arrasto do slider.
+  function atualizarGridCatalogo(){
+    const filtrados = produtosFiltrados();
+    const ativo = catalogoFiltroAtivo();
+    contagemEl.textContent = ativo
+      ? `${filtrados.length} de ${produtos.length} peça${produtos.length>1?'s':''} encontrada${filtrados.length===1?'':'s'}`
+      : `${produtos.length} peça${produtos.length>1?'s':''} no catálogo`;
+    limparBtn.style.display = ativo ? '' : 'none';
+    if(filtrados.length===0){
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1;">${iconSliders()}<h3>Nenhuma peça encontrada</h3><p>Tenta ajustar ou limpar os filtros pra ver outras peças do catálogo.</p></div>`;
+      return;
+    }
+    grid.innerHTML = filtrados.map(produtoCardHtml).join('');
+    wireCatGridButtons(grid);
+  }
+  atualizarGridCatalogo();
+
+  document.querySelectorAll('.cat-filtro-impressora').forEach(chk=>{
+    chk.addEventListener('change', ()=>{
+      const id = chk.value;
+      if(chk.checked) f.impressoras.push(id); else f.impressoras = f.impressoras.filter(x=>x!==id);
+      sincronizarURLFiltros();
+      renderMain();
+    });
+  });
+  document.querySelectorAll('.cat-filtro-material').forEach(chk=>{
+    chk.addEventListener('change', ()=>{
+      const id = chk.value;
+      if(chk.checked) f.materiais.push(id); else f.materiais = f.materiais.filter(x=>x!==id);
+      sincronizarURLFiltros();
+      renderMain();
+    });
+  });
+
+  function aplicarFaixaPreco(min, max){
+    f.precoMin = min<=lo ? null : min;
+    f.precoMax = max>=hi ? null : max;
+    sincronizarURLFiltros();
+    atualizarGridCatalogo();
+  }
+  minRange.addEventListener('input', ()=>{
+    let min = Number(minRange.value), max = Number(maxRange.value);
+    if(min>max){ min = max; minRange.value = min; }
+    minInput.value = min;
+    atualizarTrackFill();
+    aplicarFaixaPreco(min, max);
+  });
+  maxRange.addEventListener('input', ()=>{
+    let min = Number(minRange.value), max = Number(maxRange.value);
+    if(max<min){ max = min; maxRange.value = max; }
+    maxInput.value = max;
+    atualizarTrackFill();
+    aplicarFaixaPreco(min, max);
+  });
+  minInput.addEventListener('input', ()=>{
+    let min = Number(minInput.value);
+    if(!isFinite(min)) return;
+    let max = Number(maxRange.value);
+    if(min>max) min = max;
+    minRange.value = min;
+    atualizarTrackFill();
+    aplicarFaixaPreco(min, max);
+  });
+  maxInput.addEventListener('input', ()=>{
+    let max = Number(maxInput.value);
+    if(!isFinite(max)) return;
+    let min = Number(minRange.value);
+    if(max<min) max = min;
+    maxRange.value = max;
+    atualizarTrackFill();
+    aplicarFaixaPreco(min, max);
+  });
+
+  let buscaTimeout = null;
+  document.getElementById('catBuscaInput').addEventListener('input', (e)=>{
+    const valor = e.target.value;
+    clearTimeout(buscaTimeout);
+    buscaTimeout = setTimeout(()=>{
+      f.busca = valor;
+      sincronizarURLFiltros();
+      atualizarGridCatalogo();
+    }, 300);
+  });
+
+  limparBtn.addEventListener('click', ()=>{
+    state.catalogoFiltros = { impressoras: [], materiais: [], precoMin: null, precoMax: null, busca: '' };
+    sincronizarURLFiltros();
+    renderMain();
   });
 }
 
@@ -2947,6 +3214,7 @@ let bootStarted = false;
 function boot(){
   if(bootStarted) return;
   bootStarted = true;
+  lerFiltrosCatalogoDaURL();
   wireSidebarChrome();
   renderNav();
   renderMain();
