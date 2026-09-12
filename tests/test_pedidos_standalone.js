@@ -29,7 +29,10 @@ async function cadastrarVendedor(page, nome) {
 }
 
 async function trocarVendedorAtual(page, nome) {
-  await page.click('#btnTrocarVendedor');
+  // No celular (viewport dos testes), "Danilo · trocar" fica escondido atrás do menu compacto
+  // do usuário (ver leva de ajustes de UI/UX) — abre por ele em vez do botão direto no cabeçalho.
+  await page.click('#btnUsuarioMenu');
+  await page.click('#mnuTrocarVendedor');
   await page.waitForSelector('[data-escolher-vendedor]');
   const id = await page.$$eval('[data-escolher-vendedor]', (els, nome) => els.find(e => e.textContent.trim() === nome)?.getAttribute('data-escolher-vendedor'), nome);
   await page.click(`[data-escolher-vendedor="${id}"]`);

@@ -104,7 +104,10 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   assert(produtosNoStore.some(p => p.nome === 'Peça via Firebase'), 'a peça deve ter sido gravada de fato no Firestore (mock), não só na tela');
 
   // ---------- 6. logout -> volta pra tela de login ----------
-  await page.click('#btnLogout');
+  // No celular (viewport dos testes), "Sair" fica escondido atrás do menu compacto do usuário
+  // (ver leva de ajustes de UI/UX) — abre por ele em vez do botão direto no cabeçalho.
+  await page.click('#btnUsuarioMenu');
+  await page.click('#mnuSair');
   await page.waitForTimeout(100);
   const loginDeVoltaVisivel = await page.$eval('#loginScreen', el => getComputedStyle(el).display !== 'none');
   const appEscondidoDeNovo = await page.$eval('#appShell', el => getComputedStyle(el).display === 'none');
