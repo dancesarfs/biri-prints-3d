@@ -44,18 +44,14 @@ async function abrirAbaStandalone(page, tabId) {
 }
 
 // "Calcular" deixou de ser uma aba própria — cadastrar peça nova agora é um modal aberto a partir
-// da aba Catálogo (botão "Adicionar Produto", ou "Adicionar Produto" no estado vazio quando ainda
-// não há nenhuma peça salva). Esse helper navega até Catálogo e abre esse modal, ficando pronto
-// pra preencher os campos #cNome/#cMaterial/#cImpressora/#cGram/#cTempoH/#cTempoM, iguais a antes.
+// da aba Catálogo, sempre pelo FAB flutuante "#fabAdicionarProduto" (presente tanto com a lista
+// vazia quanto cheia — ver leva de ajustes de UI/UX). Esse helper navega até Catálogo e abre esse
+// modal, ficando pronto pra preencher os campos #cNome/#cMaterial/#cImpressora/#cGram/#cTempoH/
+// #cTempoM, iguais a antes.
 async function abrirNovoProdutoModalStandalone(page) {
   await abrirAbaStandalone(page, 'catalogo');
-  const btnPopulado = await page.$('#btnAdicionarProduto');
-  if (btnPopulado) {
-    await btnPopulado.click();
-  } else {
-    await page.waitForSelector('#goCalc');
-    await page.click('#goCalc');
-  }
+  await page.waitForSelector('#fabAdicionarProduto');
+  await page.click('#fabAdicionarProduto');
   await page.waitForSelector('#cNome');
 }
 

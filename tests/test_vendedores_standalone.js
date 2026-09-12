@@ -97,7 +97,10 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   assert(opcoesFiltroPed.some(t => t.includes('Marina')), `filtro de vendedor em Pedidos deve continuar listando vendedor inativo (Marina) — obtido: ${opcoesFiltroPed.join(', ')}`);
 
   // ---------- 4. trocar de vendedor atual (badge no cabeçalho) ----------
-  await page.click('#btnTrocarVendedor');
+  // No celular (viewport dos testes), "Danilo · trocar" fica escondido atrás do menu compacto
+  // do usuário (ver leva de ajustes de UI/UX) — abre por ele em vez do botão direto no cabeçalho.
+  await page.click('#btnUsuarioMenu');
+  await page.click('#mnuTrocarVendedor');
   await page.waitForSelector('[data-escolher-vendedor]');
   const opcoesTroca = await page.$$eval('[data-escolher-vendedor]', els => els.map(e => e.textContent.trim()));
   assert(!opcoesTroca.includes('Marina'), `vendedor inativo não deve aparecer no seletor de troca — obtido: ${opcoesTroca.join(', ')}`);
