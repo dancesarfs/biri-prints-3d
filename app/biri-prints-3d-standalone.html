@@ -1650,6 +1650,9 @@ const PEDIDO_STAGES = [
 ];
 const PEDIDO_BADGE_CLASS = {aberto:'badge-muted', em_producao:'badge-warn', pronto:'badge-accent', entregue:'badge-pedido', cancelado:'badge-danger'};
 const PEDIDO_BADGE_LABEL = {aberto:'Aberto', em_producao:'Em produção', pronto:'Pronto', entregue:'Entregue', cancelado:'Cancelado'};
+// Rótulo do botão "Avisar: <rótulo>" — "aberto" vira "Recebido" aqui (o texto da mensagem é sobre o
+// pedido ter sido recebido, não sobre um badge de status "Aberto"), diferente de PEDIDO_BADGE_LABEL.
+const AVISO_STATUS_LABEL = {aberto:'Recebido', em_producao:'Em produção', pronto:'Pronto', entregue:'Entregue', cancelado:'Cancelado'};
 const statusPedido = o => o.status_pedido || 'aberto';
 
 function proximoNumero(campo){
@@ -1829,18 +1832,22 @@ function normalizarTelefoneWhatsApp(tel){
   if(digitos.length===10 || digitos.length===11) return '55'+digitos; // sem DDI -> assume Brasil
   return digitos; // já veio com outro DDI, ou formato inesperado — manda como está
 }
-function enviarOrcamentoWhatsApp(id){
-  const o = byId(state.orcamentos, id);
-  if(!o) return;
-  const txt = gerarTextoOrcamento(o);
+// Abre o WhatsApp já com o texto preenchido — com telefone salvo do cliente, direto pro contato
+// (wa.me/<numero>); sem telefone, o link "genérico" do WhatsApp, que deixa a pessoa escolher o
+// contato na hora (com um toast avisando). Compartilhado pelo resumo do orçamento e pelos avisos
+// de status/pagamento do pedido — só muda o texto.
+function enviarWhatsAppParaCliente(o, txt){
   const tel = normalizarTelefoneWhatsApp(o.cliente_telefone);
-  // Com telefone: abre a conversa direto com esse contato (wa.me/<numero>).
-  // Sem telefone: link "genérico" do WhatsApp, que deixa a pessoa escolher o contato na hora.
   const url = tel
     ? `https://wa.me/${tel}?text=${encodeURIComponent(txt)}`
     : `https://api.whatsapp.com/send?text=${encodeURIComponent(txt)}`;
   if(!tel) showToast('Sem WhatsApp salvo — escolha o contato na hora de enviar');
   abrirLinkExterno(url);
+}
+function enviarOrcamentoWhatsApp(id){
+  const o = byId(state.orcamentos, id);
+  if(!o) return;
+  enviarWhatsAppParaCliente(o, gerarTextoOrcamento(o));
 }
 // Abre um link externo usando um <a> "de verdade" (criado, clicado e removido na hora), em vez de
 // window.open() — alguns navegadores/webviews bloqueiam popups abertos via script mas continuam
@@ -1931,6 +1938,7 @@ function renderPedidos(main){
           </select>
         `}
         <button class="btn btn-sm" data-toggle-pago="${o.id}">${o.pago?'Desmarcar pagamento':'Marcar como pago'}</button>
+        ${o.pago ? `<button class="btn btn-sm" data-avisar-pagamento="${o.id}">Avisar pagamento</button>` : ''}
       </div>
       <div class="row" style="margin-top:8px; align-items:center; gap:8px; flex-wrap:wrap;">
         <label style="font-size:.78rem; color:var(--text-muted);">Vendedor do pedido:</label>
@@ -1938,6 +1946,7 @@ function renderPedidos(main){
       </div>
       <div class="row" style="margin-top:8px; flex-wrap:wrap; gap:8px;">
         <button class="btn btn-sm" style="background:var(--accent); border-color:var(--accent); color:var(--accent-ink);" data-whatsapp="${o.id}">Enviar por WhatsApp</button>
+        <button class="btn btn-sm" style="background:var(--accent); border-color:var(--accent); color:var(--accent-ink);" data-avisar-status="${o.id}">Avisar: ${AVISO_STATUS_LABEL[sp]}</button>
         <button class="btn btn-sm" data-copy="${o.id}">Copiar resumo</button>
         <button class="btn btn-sm" data-copiar-orc="${o.id}">Copiar orçamento</button>
         <button class="btn btn-sm btn-ghost" data-reverter-pedido="${o.id}">Reverter para orçamento</button>
@@ -1967,6 +1976,12 @@ function renderPedidos(main){
     });
     list.querySelectorAll('[data-whatsapp]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); enviarOrcamentoWhatsApp(el.dataset.whatsapp); });
+    });
+    list.querySelectorAll('[data-avisar-status]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); enviarAvisoStatusPedido(el.dataset.avisarStatus); });
+    });
+    list.querySelectorAll('[data-avisar-pagamento]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); enviarAvisoPagamento(el.dataset.avisarPagamento); });
     });
     list.querySelectorAll('[data-copiar-orc]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); copiarOrcamento(el.dataset.copiarOrc); });
@@ -2076,6 +2091,36 @@ function togglePagamento(id){
   const data = {pago: novoPago, pago_em: novoPago ? new Date().toISOString() : null};
   if(!state.dbOk){ Object.assign(o, data); renderMain(); return; }
   state.db.collection('orcamentos').doc(id).update(data).catch(()=>showToast('Não deu pra atualizar agora'));
+}
+
+// Avisos manuais de WhatsApp pro cliente sobre o andamento do pedido — 100% manual, igual ao
+// "Enviar por WhatsApp" do orçamento: só abre a conversa com o texto pronto, quem manda de
+// verdade é o vendedor. Símbolos geométricos (■ ◆ ●), não emoji de verdade, pelo mesmo motivo de
+// gerarTextoOrcamento (emoji corrompe passando pela URL do wa.me). "aberto" cobre tanto o aviso de
+// "pedido recebido" (logo após converter) quanto reaberturas — é o mesmo texto pro mesmo status.
+function saudacaoCliente(o){
+  return o.cliente ? `Oi, ${o.cliente}!` : 'Oi!';
+}
+const TEXTO_STATUS_PEDIDO = {
+  aberto: o => `■ *Pedido recebido — Biri Prints 3D*\n\n${saudacaoCliente(o)} Recebemos seu pedido certinho por aqui e ele já entrou na nossa fila de produção. Qualquer novidade eu te aviso por aqui. Obrigado pela confiança!`,
+  em_producao: o => `● *Atualização do seu pedido — Biri Prints 3D*\n\n${saudacaoCliente(o)} Seu pedido está em produção agora — já colocamos pra rodar. Assim que sair te aviso por aqui!`,
+  pronto: o => `● *Atualização do seu pedido — Biri Prints 3D*\n\n${saudacaoCliente(o)} Seu pedido ficou pronto! Já podemos combinar a entrega ou retirada — me chama por aqui.`,
+  entregue: o => `● *Atualização do seu pedido — Biri Prints 3D*\n\n${saudacaoCliente(o)} Seu pedido foi entregue. Espero que goste bastante — se puder me contar o que achou, fico feliz em ouvir. Obrigado por comprar com a gente!`,
+  cancelado: o => `● *Atualização do seu pedido — Biri Prints 3D*\n\n${saudacaoCliente(o)} Passando pra avisar que seu pedido foi cancelado. Qualquer dúvida, é só me chamar.`,
+};
+function textoAvisoStatusPedido(o){
+  return TEXTO_STATUS_PEDIDO[statusPedido(o)](o);
+}
+function textoAvisoPagamento(o){
+  return `◆ *Pagamento confirmado — Biri Prints 3D*\n\n${saudacaoCliente(o)} Confirmando aqui que recebemos o pagamento do seu pedido. Muito obrigado!`;
+}
+function enviarAvisoStatusPedido(id){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  enviarWhatsAppParaCliente(o, textoAvisoStatusPedido(o));
+}
+function enviarAvisoPagamento(id){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  enviarWhatsAppParaCliente(o, textoAvisoPagamento(o));
 }
 
 function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
