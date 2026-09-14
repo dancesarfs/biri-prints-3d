@@ -234,6 +234,8 @@
   .badge-pedido{background:var(--accent); color:var(--accent-ink); border:1px solid var(--accent);}
   .badge-danger{background:var(--danger-soft); color:var(--danger); border:1px solid var(--danger-soft);}
 
+  .cor-swatch{display:inline-block; width:14px; height:14px; border-radius:50%; border:1px solid var(--border); margin-right:6px; vertical-align:middle;}
+
   .item-card{background:var(--surface); border:1px solid var(--border); border-radius:13px; padding:14px; box-shadow:var(--shadow); min-width:0;}
   .item-card .top-row{display:flex; justify-content:space-between; gap:10px; align-items:flex-start;}
   .item-card h3{font-size:1rem; font-weight:600; font-family:'IBM Plex Sans';}
@@ -438,6 +440,7 @@ const NAV_TREE = [
     {id:'admin-grupos', label:'Grupos de kit', icon: iconGrupo},
     {id:'admin-promocoes', label:'Promoções sazonais', icon: iconPromo},
     {id:'admin-vendedores', label:'Vendedores', icon: iconVendedor},
+    {id:'admin-cores', label:'Cores', icon: iconCores},
   ]},
   {id:'clientes', label:'Clientes', icon: iconClientes},
 ];
@@ -474,6 +477,7 @@ const state = {
   promocoes: [],
   clientes: [],
   vendedores: [],
+  cores: [],
   vendedorAtualId: null,
   tab: 'catalogo',
   expandedOrc: null,
@@ -508,6 +512,7 @@ function iconPrinter(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M6 
 function iconMaterial(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7l9 5 9-5-9-5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 7v10l9 5 9-5V7" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';}
 function iconGrupo(){return '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="3" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" rx="1.2" stroke="currentColor" stroke-width="1.8"/></svg>';}
 function iconPromo(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2 21 11l-9 9-9-9 4-9h5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="9" cy="6" r="1.2" fill="currentColor"/></svg>';}
+function iconCores(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 21a9 9 0 1 1 0-18c4.97 0 9 3.5 9 7.5 0 2.5-2 4-4.5 4h-1.7c-.8 0-1.3.9-.9 1.6.4.6.1 1.4-.6 1.6-.5.1-1 .3-1.3.7-.3.4-.1 1 .4 1.2.3.1.6.2.6.4 0 .5-.5 1-1 1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="7.5" cy="10.5" r="1.1" fill="currentColor"/><circle cx="10.5" cy="7" r="1.1" fill="currentColor"/><circle cx="15" cy="7.5" r="1.1" fill="currentColor"/><circle cx="17" cy="11.5" r="1.1" fill="currentColor"/></svg>';}
 function iconChevronDown(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';}
 function iconEditar(){return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';}
 function iconDuplicar(){return '<svg viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.8"/><path d="M4 16V5.5A1.5 1.5 0 0 1 5.5 4H16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';}
@@ -526,6 +531,12 @@ function fmtTempo(horasDecimais){
 }
 const byId = (arr, id) => arr.find(x => x.id === id);
 const uid = () => Math.random().toString(36).slice(2, 10);
+// Uma "parte" de produto: cor (fixa ou personalizável, independente de) texto personalizável
+// (ex.: nome gravado). Toda peça tem pelo menos 1 parte — a peça "simples" de sempre é só uma
+// peça com 1 parte só, sem nenhuma personalização marcada (o caso comum não precisa de tela extra).
+function novaParteDefault(){
+  return {id: uid(), nome: '', tipo_cor: 'fixa', cor_fixa_id: '', texto_personalizavel: false, rotulo_texto: '', texto_max_chars: null};
+}
 const normalizarBusca = s => (s||'').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // Resolve gramatura/tempo pra uma peça numa impressora específica: usa o perfil salvo
@@ -835,6 +846,7 @@ function renderMain(){
   if(state.tab==='admin-grupos') return renderAdminGrupos(main);
   if(state.tab==='admin-promocoes') return renderAdminPromocoes(main);
   if(state.tab==='admin-vendedores') return renderAdminVendedores(main);
+  if(state.tab==='admin-cores') return renderAdminCores(main);
   if(state.tab==='clientes') return renderClientes(main);
 }
 function addFab(id, onClick){
@@ -1020,6 +1032,10 @@ function saveCurrentCalcToCatalogo(){
     custo_embalagem: Number(draft.custo_embalagem)||0,
     ajuste_manual,
     criado_em: new Date().toISOString(),
+    // Toda peça tem ao menos 1 "parte" (cor/texto personalizável) — no cadastro rápido, nasce com
+    // 1 parte simples e sem nenhuma personalização; configurar partes/cores é coisa do editor
+    // completo ("Editar peça"), pra não pesar esse modal de criação rápida.
+    partes: [novaParteDefault()],
   };
   if(!state.dbOk){
     data.id = uid();
@@ -1478,6 +1494,13 @@ function openProdutoEditor(id, duplicar){
         <button type="button" class="textbtn" id="epAddPerfil" style="align-self:flex-start;">+ Adicionar perfil de impressora</button>
       </div>
 
+      <div>
+        <p class="section-label">Partes e cores</p>
+        <p style="font-size:.76rem;color:var(--text-muted);margin:0 0 8px;">Toda peça tem pelo menos uma parte. Cada parte pode ter cor fixa ou deixar o cliente escolher no orçamento, e também aceitar um texto personalizado (ex.: nome gravado) — são independentes. Não aparece na lista do Catálogo, só aqui na edição.</p>
+        <div class="stack" id="epPartes"></div>
+        <button type="button" class="textbtn" id="epAddParte" style="align-self:flex-start;">+ Adicionar parte</button>
+      </div>
+
       <button class="btn btn-primary btn-block" id="epSave">${duplicar?'Salvar como nova peça':'Salvar alterações'}</button>
     </div>
   `, (bd)=>{
@@ -1567,6 +1590,82 @@ function openProdutoEditor(id, duplicar){
       renderPerfis();
     });
 
+    // ---- partes (cor fixa/personalizável + texto personalizável, por parte) ----
+    // A lista de cores oferecida é sempre a do material ATUAL do produto (select #epMaterial) — a
+    // mesma cor pode valer pra vários materiais, mas cada material tem seu próprio conjunto (ver
+    // Admin > Cores). Por isso corOptionsHtml recebe o material_id a cada render, não uma vez só.
+    let partes = (existing.partes && existing.partes.length) ? existing.partes.map(p=>({...p})) : [novaParteDefault()];
+    const renderPartes = ()=>{
+      const box = bd.querySelector('#epPartes');
+      const materialAtualId = bd.querySelector('#epMaterial').value;
+      const materialAtual = byId(state.materiais, materialAtualId);
+      const corasAtivasDoMaterial = state.cores.filter(c=> c.ativa!==false && (c.material_ids||[]).includes(materialAtualId));
+      box.innerHTML = partes.map((pt,i)=>{
+        const semCorNoMaterial = corasAtivasDoMaterial.length===0;
+        // Sem atalho pra abrir "Nova cor" daqui: o modal desse app não é empilhável (abrir outro
+        // modal por cima fecha/descarta este), então um atalho assim perderia as edições em
+        // andamento na peça. O aviso deixa claro o que falta; cadastrar a cor é em Admin > Cores.
+        const avisoSemCor = `<p style="font-size:.76rem;color:${pt.tipo_cor==='personalizavel'?'var(--danger)':'var(--text-muted)'};margin:4px 0 0;">Nenhuma cor cadastrada pra ${materialAtual?materialAtual.nome:'esse material'} ainda — cadastre em Admin &gt; Cores.</p>`;
+        return `<div class="card stack" style="padding:10px;">
+          <div class="row" style="justify-content:space-between; align-items:center; gap:8px;">
+            <input class="ipt parte-nome" data-idx="${i}" value="${pt.nome||''}" placeholder="Nome da parte (opcional) — ex.: Corpo, Tampa" style="flex:1;">
+            ${partes.length>1 ? `<button type="button" class="btn btn-ghost btn-sm" data-rm-parte="${i}">✕</button>` : ''}
+          </div>
+          <div class="row" style="gap:14px; flex-wrap:wrap;">
+            <label class="row" style="gap:6px; cursor:pointer;">
+              <input type="radio" name="parteCor${i}" class="parte-tipocor" data-idx="${i}" value="fixa" ${pt.tipo_cor!=='personalizavel'?'checked':''}>
+              <span style="font-size:.84rem;">Cor fixa</span>
+            </label>
+            <label class="row" style="gap:6px; cursor:pointer;">
+              <input type="radio" name="parteCor${i}" class="parte-tipocor" data-idx="${i}" value="personalizavel" ${pt.tipo_cor==='personalizavel'?'checked':''}>
+              <span style="font-size:.84rem;">Cor personalizável</span>
+            </label>
+          </div>
+          ${pt.tipo_cor!=='personalizavel'
+            ? `<label class="field"><span>Cor</span><select class="ipt parte-cor" data-idx="${i}">${corOptionsHtml(pt.cor_fixa_id, materialAtualId)}</select></label>${semCorNoMaterial?avisoSemCor:''}`
+            : (semCorNoMaterial
+              ? avisoSemCor
+              : `<p style="font-size:.76rem;color:var(--text-muted);margin:0;">O cliente escolhe a cor dessa parte (entre as de ${materialAtual?materialAtual.nome:'material atual'}) na hora do orçamento.</p>`)}
+          <label class="row" style="gap:8px; cursor:pointer;">
+            <input type="checkbox" class="parte-texto-chk" data-idx="${i}" style="width:17px;height:17px;flex:none;" ${pt.texto_personalizavel?'checked':''}>
+            <span style="font-size:.84rem;">Aceita texto personalizável (ex.: nome gravado)</span>
+          </label>
+          ${pt.texto_personalizavel ? `
+            <div class="grid-2">
+              <label class="field"><span>Rótulo do campo<span class="req">*</span></span><input class="ipt parte-rotulo" data-idx="${i}" value="${pt.rotulo_texto||''}" placeholder="Ex.: Nome"></label>
+              <label class="field"><span>Limite de caracteres (opcional)</span><input class="ipt parte-maxchars" data-idx="${i}" type="number" min="1" step="1" value="${pt.texto_max_chars||''}" placeholder="Sem limite"></label>
+            </div>` : ''}
+        </div>`;
+      }).join('');
+
+      box.querySelectorAll('.parte-nome').forEach(inp=> inp.addEventListener('input', ()=>{ partes[Number(inp.dataset.idx)].nome = inp.value; }));
+      box.querySelectorAll('.parte-tipocor').forEach(r=> r.addEventListener('change', ()=>{ partes[Number(r.dataset.idx)].tipo_cor = r.value; renderPartes(); }));
+      box.querySelectorAll('.parte-cor').forEach(sel=> sel.addEventListener('change', ()=>{ partes[Number(sel.dataset.idx)].cor_fixa_id = sel.value; }));
+      box.querySelectorAll('.parte-texto-chk').forEach(chk=> chk.addEventListener('change', ()=>{ partes[Number(chk.dataset.idx)].texto_personalizavel = chk.checked; renderPartes(); }));
+      box.querySelectorAll('.parte-rotulo').forEach(inp=> inp.addEventListener('input', ()=>{ partes[Number(inp.dataset.idx)].rotulo_texto = inp.value; }));
+      box.querySelectorAll('.parte-maxchars').forEach(inp=> inp.addEventListener('input', ()=>{ partes[Number(inp.dataset.idx)].texto_max_chars = inp.value; }));
+      box.querySelectorAll('[data-rm-parte]').forEach(b=> b.addEventListener('click', ()=>{ partes.splice(Number(b.dataset.rmParte),1); renderPartes(); }));
+    };
+    renderPartes();
+
+    bd.querySelector('#epAddParte').addEventListener('click', ()=>{ partes.push(novaParteDefault()); renderPartes(); });
+
+    // Trocar o material pode invalidar cores fixas já escolhidas (a cor só vale pro(s) material(is)
+    // marcado(s) em Admin > Cores) — reseta pra "sem cor definida" em vez de deixar uma cor que não
+    // existe mais nesse material presa no cadastro, e avisa que precisa escolher de novo.
+    bd.querySelector('#epMaterial').addEventListener('change', ()=>{
+      const materialAtualId = bd.querySelector('#epMaterial').value;
+      let resetou = false;
+      partes.forEach(p=>{
+        if(p.cor_fixa_id){
+          const cor = byId(state.cores, p.cor_fixa_id);
+          if(!cor || !(cor.material_ids||[]).includes(materialAtualId)){ p.cor_fixa_id = ''; resetou = true; }
+        }
+      });
+      if(resetou) showToast('Cor de alguma parte não existe nesse material — escolha de novo');
+      renderPartes();
+    });
+
     bd.querySelector('#epSave').addEventListener('click', ()=>{
       clearFieldErrors(bd);
       const nome = bd.querySelector('#epNome').value.trim();
@@ -1580,7 +1679,16 @@ function openProdutoEditor(id, duplicar){
       if(!impressora_id){ markFieldError(bd.querySelector('#epImpressora'), 'Cadastre uma impressora em Admin primeiro'); temErro=true; }
       if(!(gramatura>0)){ markFieldError(bd.querySelector('#epGram'), 'Informe a gramatura da peça'); temErro=true; }
       if(!((h + m/60)>0)){ markFieldErrorPair(bd.querySelector('#epTempoH'), bd.querySelector('#epTempoM'), 'Informe o tempo de máquina'); temErro=true; }
-      if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(bd); return; }
+      partes.forEach((p, i)=>{
+        if(p.texto_personalizavel && !(p.rotulo_texto||'').trim()){
+          markFieldError(bd.querySelector(`.parte-rotulo[data-idx="${i}"]`), 'Defina um rótulo pro campo de texto');
+          temErro = true;
+        }
+        if(p.tipo_cor==='personalizavel' && !state.cores.some(c=>c.ativa!==false && (c.material_ids||[]).includes(material_id))){
+          temErro = true; // aviso já fica visível dentro do card da parte (renderPartes)
+        }
+      });
+      if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(bd); bd.querySelector('#epPartes').scrollIntoView({behavior:'smooth', block:'center'}); return; }
       const custo_embalagem = Number(bd.querySelector('#epEmb').value)||0;
       const material = byId(state.materiais, material_id);
       const impressora = byId(state.impressoras, impressora_id);
@@ -1593,9 +1701,21 @@ function openProdutoEditor(id, duplicar){
       }
       const perfis_impressora = {};
       perfis.forEach(p=>{ if(p.impressora_id) perfis_impressora[p.impressora_id] = {gramatura:Number(p.gramatura)||0, tempo_horas:Number(p.tempo_horas)||0}; });
-      const data = {nome, material_id, impressora_id, gramatura, tempo_horas: h+m/60, custo_embalagem, ajuste_manual, perfis_impressora};
+      const partesFinal = partes.map(p=>({
+        id: p.id || uid(),
+        nome: (p.nome||'').trim(),
+        tipo_cor: p.tipo_cor==='personalizavel' ? 'personalizavel' : 'fixa',
+        cor_fixa_id: p.tipo_cor==='personalizavel' ? '' : (p.cor_fixa_id||''),
+        texto_personalizavel: !!p.texto_personalizavel,
+        rotulo_texto: p.texto_personalizavel ? (p.rotulo_texto||'').trim() : '',
+        texto_max_chars: (p.texto_personalizavel && Number(p.texto_max_chars)>0) ? Number(p.texto_max_chars) : null,
+      }));
+      const data = {nome, material_id, impressora_id, gramatura, tempo_horas: h+m/60, custo_embalagem, ajuste_manual, perfis_impressora, partes: partesFinal};
 
       if(duplicar){
+        // Ids de parte novos na cópia — não afeta nada hoje (cada orçamento guarda produto_id +
+        // parte_id juntos), mas evita duas peças diferentes compartilhando o mesmo id de parte.
+        data.partes = partesFinal.map(p=>({...p, id: uid()}));
         if(!state.dbOk){
           data.id = uid(); data.criado_em = new Date().toISOString();
           state.produtos = [data, ...state.produtos];
@@ -2807,6 +2927,121 @@ function deleteVendedor(id){
   state.db.collection('vendedores').doc(id).delete().then(()=>showToast('Vendedor removido')).catch(()=>showToast('Não deu pra excluir agora'));
 }
 
+/* ---------------- cores (personalização de partes de produto) ---------------- */
+function corValida(hex){
+  return /^#([0-9A-Fa-f]{3}){1,2}$/.test(String(hex||'').trim());
+}
+function corSwatchHtml(cor){
+  return corValida(cor?.hex) ? `<span class="cor-swatch" style="background:${cor.hex};" title="${cor.hex}"></span>` : '';
+}
+// Nomes dos materiais em que a cor está disponível — usado na lista de Admin > Cores.
+function corMateriaisResumo(cor){
+  const nomes = (cor.material_ids||[]).map(mid=>{
+    const m = byId(state.materiais, mid);
+    return m ? (m.nome + (m.marca ? ' — '+m.marca : '')) : null;
+  }).filter(Boolean);
+  return nomes.length ? nomes.join(', ') : 'Nenhum material vinculado';
+}
+function renderAdminCores(main){
+  main.innerHTML = `
+    ${offlineBanner()}
+    <div class="row" style="justify-content:space-between; margin-bottom:2px;">
+      <p class="section-label" style="margin-bottom:0;">Cores cadastradas</p>
+      <button class="btn btn-sm" id="btnAddCor">+ Cor</button>
+    </div>
+    <p style="font-size:.78rem; color:var(--text-muted); margin:0 0 12px;">Usadas pra personalizar partes de produtos com cor personalizável (ver Catálogo &gt; editar peça) — cada cor só aparece pros produtos feitos no(s) material(is) em que ela está disponível. Não aparecem na lista do Catálogo.</p>
+    <div class="stack" id="corList"></div>
+  `;
+  const corList = document.getElementById('corList');
+  corList.innerHTML = state.cores.length ? state.cores.map(c=>`
+    <div class="item-card">
+      <div class="top-row">
+        <div><h3>${corSwatchHtml(c)}${c.nome}</h3><div class="meta">Disponível em: ${corMateriaisResumo(c)}</div></div>
+        <span class="badge ${c.ativa!==false?'badge-accent':'badge-muted'}">${c.ativa!==false?'Ativa':'Inativa'}</span>
+      </div>
+      <div class="actions">
+        <button class="btn btn-sm" data-edit-cor="${c.id}">Editar</button>
+        <button class="btn btn-sm btn-ghost" data-del-cor="${c.id}">Excluir</button>
+      </div>
+    </div>`).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhuma cor cadastrada.</p>`;
+
+  document.getElementById('btnAddCor').addEventListener('click', ()=>openCorEditor(null));
+  corList.querySelectorAll('[data-edit-cor]').forEach(b=> b.addEventListener('click', ()=>openCorEditor(b.dataset.editCor)));
+  corList.querySelectorAll('[data-del-cor]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteCor(b.dataset.delCor))));
+}
+
+function openCorEditor(id){
+  const existing = id ? byId(state.cores, id) : null;
+  const materiaisChecks = state.materiais.map(m=>{
+    const checked = existing && (existing.material_ids||[]).includes(m.id);
+    return `<label class="row" style="gap:9px; cursor:pointer;">
+      <input type="checkbox" class="cor-material-chk" value="${m.id}" ${checked?'checked':''} style="width:18px;height:18px;flex:none;">
+      <span style="font-size:.86rem;">${m.nome}${m.marca?' — '+m.marca:''}</span>
+    </label>`;
+  }).join('');
+  openModal(existing?'Editar cor':'Nova cor', `
+    <div class="stack">
+      <label class="field"><span>Nome<span class="req">*</span></span><input class="ipt" id="corNome" value="${existing?.nome||''}" placeholder="Ex.: Vermelho"></label>
+      <label class="field"><span>Código/hex (opcional)</span><input class="ipt" id="corHex" value="${existing?.hex||''}" placeholder="#FF0000"></label>
+      <div>
+        <p class="section-label">Disponível nos materiais<span class="req">*</span> <span style="text-transform:none; font-weight:400; letter-spacing:normal;">(mínimo 1)</span></p>
+        <div class="stack" style="max-height:220px; overflow-y:auto;" id="corMateriaisBox">
+          ${materiaisChecks || '<p style="color:var(--text-muted); font-size:.85rem;">Cadastre materiais em Admin primeiro.</p>'}
+        </div>
+        <div id="corMateriaisErro"></div>
+      </div>
+      <label class="row" style="gap:8px; cursor:pointer;">
+        <input type="checkbox" id="corAtiva" style="width:18px;height:18px;flex:none;" ${(!existing || existing.ativa!==false)?'checked':''}>
+        <span style="font-size:.86rem;">Cor ativa (aparece pra escolher em produtos/orçamentos novos)</span>
+      </label>
+      <button class="btn btn-primary btn-block" id="corSave">Salvar</button>
+    </div>
+  `, (bd)=>{
+    bd.querySelector('#corSave').addEventListener('click', async ()=>{
+      clearFieldErrors(bd);
+      bd.querySelector('#corMateriaisErro').innerHTML = '';
+      const nome = bd.querySelector('#corNome').value.trim();
+      const hex = bd.querySelector('#corHex').value.trim();
+      const material_ids = [...bd.querySelectorAll('.cor-material-chk:checked')].map(c=>c.value);
+      let temErro = false;
+      if(!nome){ markFieldError(bd.querySelector('#corNome'), 'Dá um nome pra cor'); temErro=true; }
+      if(hex && !corValida(hex)){ markFieldError(bd.querySelector('#corHex'), 'Código inválido — use o formato #RRGGBB'); temErro=true; }
+      if(material_ids.length===0){
+        bd.querySelector('#corMateriaisErro').innerHTML = `<p class="field-error">Marque pelo menos um material — uma cor é sempre um filamento específico.</p>`;
+        temErro=true;
+      }
+      if(temErro){ showToast('Confere os campos destacados'); focusFirstInvalid(bd); return; }
+      const data = {nome, hex, material_ids, ativa: bd.querySelector('#corAtiva').checked};
+      if(!state.dbOk){
+        if(existing){ Object.assign(existing, data); } else { data.id=uid(); state.cores=[...state.cores, data]; }
+        closeModal(); renderMain(); showToast('Salvo (modo local)');
+        return;
+      }
+      try{
+        if(existing){ await state.db.collection('cores').doc(existing.id).update(data); closeModal(); showToast('Cor salva'); }
+        else{ await state.db.collection('cores').add(data); closeModal(); showToast('Cor cadastrada'); }
+      }catch(e){ showToast('Não deu pra salvar agora'); }
+    });
+  });
+}
+function deleteCor(id){
+  if(!state.dbOk){ state.cores = state.cores.filter(c=>c.id!==id); renderMain(); return; }
+  state.db.collection('cores').doc(id).delete().then(()=>showToast('Cor removida')).catch(()=>showToast('Não deu pra excluir agora'));
+}
+// Lista de cores pro seletor de "cor fixa" de uma parte de produto — SÓ as disponíveis no material
+// que o produto usa (mais a já selecionada mesmo que tenha deixado de valer pra esse material,
+// mesmo espírito do fallback "material removido" do Catálogo — não faz a cor salva desaparecer
+// silenciosamente). Dentro disso, ativas + a já selecionada, igual a vendedorOptionsHtml.
+function corOptionsHtml(selecionadoId, materialId){
+  const doMaterial = state.cores.filter(c=> (c.material_ids||[]).includes(materialId));
+  const visiveis = doMaterial.filter(c=> c.ativa!==false || c.id===selecionadoId);
+  const selecionadaForaDaLista = selecionadoId && !visiveis.some(c=>c.id===selecionadoId) ? byId(state.cores, selecionadoId) : null;
+  let html = `<option value="">— sem cor definida —</option>`;
+  html += visiveis.map(c=>`<option value="${c.id}" ${selecionadoId===c.id?'selected':''}>${c.nome}${c.ativa===false?' (inativa)':''}</option>`).join('');
+  if(selecionadaForaDaLista) html += `<option value="${selecionadaForaDaLista.id}" selected>${selecionadaForaDaLista.nome} (não disponível nesse material)</option>`;
+  return html;
+}
+
 // ---- "Vendedor atual" (quem está usando o app agora) ----
 // Além do login (que dá acesso ao app), existe uma identificação de "quem está cadastrando" nesse
 // aparelho — salva no localStorage, sempre trocável, serve pra pré-preencher quem criou um
@@ -3401,7 +3636,7 @@ async function importarBackupJSON(backup){
   if(backup.config){
     escritas.push(db.doc('config/geral').set(backup.config));
   }
-  const colecoes = ['impressoras', 'materiais', 'produtos', 'grupos', 'promocoes', 'orcamentos'];
+  const colecoes = ['impressoras', 'materiais', 'cores', 'produtos', 'grupos', 'promocoes', 'orcamentos'];
   colecoes.forEach(nomeColecao=>{
     const itens = backup[nomeColecao];
     if(!Array.isArray(itens)) return;
@@ -3484,6 +3719,11 @@ function boot(){
       state.vendedores = qs.docs.map(d=>({id:d.id, ...d.data()}));
       checarVendedorAtual();
       if(state.tab==='admin-vendedores') fullRerender();
+    }, ()=>{});
+
+    db.collection('cores').onSnapshot(qs=>{
+      state.cores = qs.docs.map(d=>({id:d.id, ...d.data()}));
+      if(state.tab==='admin-cores') fullRerender();
     }, ()=>{});
 
   }catch(e){ /* stays in local fallback mode */ }
