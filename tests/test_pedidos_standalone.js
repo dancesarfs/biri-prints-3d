@@ -20,8 +20,8 @@ async function login(page) {
 
 async function cadastrarVendedor(page, nome) {
   await abrirAbaStandalone(page, 'admin-vendedores');
-  await page.waitForSelector('#btnAddVendedor');
-  await page.click('#btnAddVendedor');
+  await page.waitForSelector('#fabAddVendedor');
+  await page.click('#fabAddVendedor');
   await page.waitForSelector('#vNome');
   await page.fill('#vNome', nome);
   await page.click('#vSave');

@@ -31,7 +31,7 @@ async function novaPagina(browser, extraUrl = '') {
 
 async function addMaterial(page, nome, preco) {
   await abrirAbaStandalone(page, 'admin-materiais');
-  await page.click('#btnAddMat');
+  await page.click('#fabAddMaterial');
   await page.waitForSelector('#mNome');
   await page.fill('#mNome', nome);
   await page.fill('#mPreco', String(preco));
@@ -41,7 +41,7 @@ async function addMaterial(page, nome, preco) {
 
 async function addImpressora(page, nome) {
   await abrirAbaStandalone(page, 'admin-impressoras');
-  await page.click('#btnAddImp');
+  await page.click('#fabAddImpressora');
   await page.waitForSelector('#iNome');
   await page.fill('#iNome', nome);
   await page.fill('#iPreco', '3000');

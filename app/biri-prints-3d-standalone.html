@@ -2947,7 +2947,6 @@ function renderAdminCores(main){
     ${offlineBanner()}
     <div class="row" style="justify-content:space-between; margin-bottom:2px;">
       <p class="section-label" style="margin-bottom:0;">Cores cadastradas</p>
-      <button class="btn btn-sm" id="btnAddCor">+ Cor</button>
     </div>
     <p style="font-size:.78rem; color:var(--text-muted); margin:0 0 12px;">Usadas pra personalizar partes de produtos com cor personalizável (ver Catálogo &gt; editar peça) — cada cor só aparece pros produtos feitos no(s) material(is) em que ela está disponível. Não aparecem na lista do Catálogo.</p>
     <div class="stack" id="corList"></div>
@@ -2965,7 +2964,7 @@ function renderAdminCores(main){
       </div>
     </div>`).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhuma cor cadastrada.</p>`;
 
-  document.getElementById('btnAddCor').addEventListener('click', ()=>openCorEditor(null));
+  addFab('fabAddCor', ()=>openCorEditor(null));
   corList.querySelectorAll('[data-edit-cor]').forEach(b=> b.addEventListener('click', ()=>openCorEditor(b.dataset.editCor)));
   corList.querySelectorAll('[data-del-cor]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteCor(b.dataset.delCor))));
 }
@@ -3198,7 +3197,6 @@ function renderAdminImpressoras(main){
     ${offlineBanner()}
     <div class="row" style="justify-content:space-between; margin-bottom:2px;">
       <p class="section-label" style="margin-bottom:0;">Impressoras cadastradas</p>
-      <button class="btn btn-sm" id="btnAddImp">+ Impressora</button>
     </div>
     <div class="stack" id="impList"></div>
   `;
@@ -3216,7 +3214,7 @@ function renderAdminImpressoras(main){
       </div>
     </div>`).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhuma impressora cadastrada.</p>`;
 
-  document.getElementById('btnAddImp').addEventListener('click', ()=>openImpressoraEditor(null));
+  addFab('fabAddImpressora', ()=>openImpressoraEditor(null));
   impList.querySelectorAll('[data-edit-imp]').forEach(b=> b.addEventListener('click', ()=>openImpressoraEditor(b.dataset.editImp)));
   impList.querySelectorAll('[data-del-imp]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteImpressora(b.dataset.delImp))));
 }
@@ -3226,7 +3224,6 @@ function renderAdminMateriais(main){
     ${offlineBanner()}
     <div class="row" style="justify-content:space-between; margin-bottom:2px;">
       <p class="section-label" style="margin-bottom:0;">Materiais cadastrados</p>
-      <button class="btn btn-sm" id="btnAddMat">+ Material</button>
     </div>
     <div class="stack" id="matList"></div>
   `;
@@ -3243,7 +3240,7 @@ function renderAdminMateriais(main){
       </div>
     </div>`).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum material cadastrado.</p>`;
 
-  document.getElementById('btnAddMat').addEventListener('click', ()=>openMaterialEditor(null));
+  addFab('fabAddMaterial', ()=>openMaterialEditor(null));
   matList.querySelectorAll('[data-edit-mat]').forEach(b=> b.addEventListener('click', ()=>openMaterialEditor(b.dataset.editMat)));
   matList.querySelectorAll('[data-del-mat]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteMaterial(b.dataset.delMat))));
 }
@@ -3253,7 +3250,6 @@ function renderAdminGrupos(main){
     ${offlineBanner()}
     <div class="row" style="justify-content:space-between; margin-bottom:2px;">
       <p class="section-label" style="margin-bottom:0;">Grupos de kit</p>
-      <button class="btn btn-sm" id="btnAddGrupo">+ Grupo</button>
     </div>
     <p style="font-size:.78rem;color:var(--text-muted);margin:0 0 10px;">Produtos que "convivem" entre si — a base para o sistema detectar kits num orçamento.</p>
     <div class="stack" id="grupoList"></div>
@@ -3272,7 +3268,7 @@ function renderAdminGrupos(main){
     </div>`;
   }).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum grupo cadastrado.</p>`;
 
-  document.getElementById('btnAddGrupo').addEventListener('click', ()=>openGrupoEditor(null));
+  addFab('fabAddGrupo', ()=>openGrupoEditor(null));
   grupoList.querySelectorAll('[data-edit-grupo]').forEach(b=> b.addEventListener('click', ()=>openGrupoEditor(b.dataset.editGrupo)));
   grupoList.querySelectorAll('[data-del-grupo]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteGrupo(b.dataset.delGrupo))));
 }
@@ -3282,7 +3278,6 @@ function renderAdminPromocoes(main){
     ${offlineBanner()}
     <div class="row" style="justify-content:space-between; margin-bottom:2px;">
       <p class="section-label" style="margin-bottom:0;">Promoções sazonais</p>
-      <button class="btn btn-sm" id="btnAddPromo">+ Promoção</button>
     </div>
     <p style="font-size:.78rem;color:var(--text-muted);margin:0 0 10px;">Cada promoção liga um grupo a um período e a faixas de desconto por nº de produtos distintos no kit.</p>
     <div class="stack" id="promoList"></div>
@@ -3311,7 +3306,7 @@ function renderAdminPromocoes(main){
     </div>`;
   }).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhuma promoção cadastrada.</p>`;
 
-  document.getElementById('btnAddPromo').addEventListener('click', ()=>openPromoEditor(null));
+  addFab('fabAddPromocao', ()=>openPromoEditor(null));
   promoList.querySelectorAll('[data-edit-promo]').forEach(b=> b.addEventListener('click', ()=>openPromoEditor(b.dataset.editPromo)));
   promoList.querySelectorAll('[data-del-promo]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deletePromocao(b.dataset.delPromo))));
 }
@@ -3321,7 +3316,6 @@ function renderAdminVendedores(main){
     ${offlineBanner()}
     <div class="row" style="justify-content:space-between; margin-bottom:2px;">
       <p class="section-label" style="margin-bottom:0;">Vendedores cadastrados</p>
-      <button class="btn btn-sm" id="btnAddVendedor">+ Vendedor</button>
     </div>
     <div class="stack" id="vendedorList"></div>
   `;
@@ -3338,7 +3332,7 @@ function renderAdminVendedores(main){
       </div>
     </div>`).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum vendedor cadastrado.</p>`;
 
-  document.getElementById('btnAddVendedor').addEventListener('click', ()=>openVendedorEditor(null));
+  addFab('fabAddVendedor', ()=>openVendedorEditor(null));
   vendedorList.querySelectorAll('[data-edit-vendedor]').forEach(b=> b.addEventListener('click', ()=>openVendedorEditor(b.dataset.editVendedor)));
   vendedorList.querySelectorAll('[data-del-vendedor]').forEach(b=> b.addEventListener('click', ()=>confirmThenDelete(b, ()=>deleteVendedor(b.dataset.delVendedor))));
 }

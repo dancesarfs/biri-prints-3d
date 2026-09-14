@@ -69,15 +69,15 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
     // sem material cadastrado ainda no banco novo — cadastra um rapidinho
     await page.evaluate(() => { document.getElementById('modalBackdrop')?.remove(); });
     await abrirAbaStandalone(page, 'admin-materiais');
-    await page.waitForSelector('#btnAddMat');
-    await page.click('#btnAddMat');
+    await page.waitForSelector('#fabAddMaterial');
+    await page.click('#fabAddMaterial');
     await page.waitForSelector('#mNome');
     await page.fill('#mNome', 'PLA Teste');
     await page.fill('#mPreco', '100');
     await page.click('#mSave');
     await page.waitForTimeout(150);
     await abrirAbaStandalone(page, 'admin-impressoras');
-    await page.click('#btnAddImp');
+    await page.click('#fabAddImpressora');
     await page.waitForSelector('#iNome');
     await page.fill('#iNome', 'Impressora Teste');
     await page.fill('#iPreco', '3000');

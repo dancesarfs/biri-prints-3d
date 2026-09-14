@@ -38,7 +38,7 @@ async function valorDoOptionPorTexto(page, selectId, textoParcial) {
 
 async function addMaterial(page, nome, marca) {
   await abrirAbaStandalone(page, 'admin-materiais');
-  await page.click('#btnAddMat');
+  await page.click('#fabAddMaterial');
   await page.waitForSelector('#mNome');
   await page.fill('#mNome', nome);
   if (marca) await page.fill('#mMarca', marca);
@@ -49,7 +49,7 @@ async function addMaterial(page, nome, marca) {
 
 async function addImpressora(page, nome) {
   await abrirAbaStandalone(page, 'admin-impressoras');
-  await page.click('#btnAddImp');
+  await page.click('#fabAddImpressora');
   await page.waitForSelector('#iNome');
   await page.fill('#iNome', nome);
   await page.fill('#iPreco', '3000');
@@ -61,8 +61,8 @@ async function addImpressora(page, nome) {
 
 async function addCor(page, nome, hex, materiaisNomes) {
   await abrirAbaStandalone(page, 'admin-cores');
-  await page.waitForSelector('#btnAddCor');
-  await page.click('#btnAddCor');
+  await page.waitForSelector('#fabAddCor');
+  await page.click('#fabAddCor');
   await page.waitForSelector('#corNome');
   await page.fill('#corNome', nome);
   if (hex) await page.fill('#corHex', hex);
@@ -100,8 +100,8 @@ async function addProduto(page, nome, materialNome, impressoraNome) {
 
   // ---------- 2. Cores exige pelo menos 1 material marcado ----------
   await abrirAbaStandalone(page, 'admin-cores');
-  await page.waitForSelector('#btnAddCor');
-  await page.click('#btnAddCor');
+  await page.waitForSelector('#fabAddCor');
+  await page.click('#fabAddCor');
   await page.waitForSelector('#corNome');
   await page.fill('#corNome', 'Cor Sem Material');
   await page.click('#corSave');
