@@ -297,6 +297,16 @@ Pedido do usuário com duas melhorias de consistência, explicitamente **analisa
 
 Nenhum teste novo foi necessário pro item 2 (nenhum bug pra cobrir); os testes existentes que dependiam dos ids dos botões de texto removidos (`#btnAddImp`/`#btnAddMat`/`#btnAddGrupo`/`#btnAddPromo`/`#btnAddVendedor`/`#btnAddCor`) foram atualizados pros ids dos FABs novos (`#fabAddImpressora`/`#fabAddMaterial`/`#fabAddGrupo`/`#fabAddPromocao`/`#fabAddVendedor`/`#fabAddCor`) nos arquivos que testam a standalone. Validado visualmente (prints das 6 telas com o FAB) e suíte completa 3x seguidas antes de comitar.
 
+### Logo de verdade no lugar do símbolo placeholder (2026-09-14)
+Pedido do usuário: substituir o `.mark` (triângulo em SVG inline, usado como placeholder desde o início do projeto) pela logo real da marca — um PNG com fundo transparente (1031×826) que já traz o símbolo (o "pin"/bocal + a linha azul em espiral) junto com o nome "biri prints" escrito por extenso.
+
+1. **Imagem salva em `app/assets/logo.png`** — ao lado do próprio HTML da standalone (caminho relativo `assets/logo.png` funciona tanto local via `file://` quanto publicado no GitHub Pages, sem depender da raiz do repositório).
+2. **Tela de login**: `<img class="logo-img">` no lugar do SVG do `.mark` + o `<h1>Biri Prints 3D</h1>` (a logo já traz o nome escrito, então o `<h1>` ficaria redundante). Largura fixa 220px, altura automática (preserva a proporção original ~1031:826). A frase abaixo ("Entre pra acessar seu catálogo e orçamentos") não mudou.
+3. **Cabeçalho do topo**: mesma troca (SVG do `.mark` + `<h1>` → `<img class="logo-img-header">`), dimensionada pela **altura** (40px, largura automática) pra caber na barra sem aumentá-la. A tagline "Precificação 3D" continua ao lado, dentro do mesmo `.titulo`.
+4. **Cabeçalho pequeno, aviso explícito conforme pedido**: nesse tamanho (40px de altura), o nome "biri prints" continua legível, mas o desenho do símbolo (espiral + pin) perde definição, quase virando um traço solto. Mostrado ao usuário (prints do cabeçalho mobile/desktop) antes de qualquer ajuste — ele decidiu manter assim por enquanto, sem aumentar a altura da barra nem recortar uma versão só-símbolo pro cabeçalho.
+
+Nenhum teste dependia do texto "Biri Prints 3D" aparecendo como `<h1>` na tela de login ou no cabeçalho (confirmado por busca em `tests/`) — suíte completa passou sem precisar de ajuste. Validado visualmente (prints do login e do cabeçalho, mobile e desktop) e suíte completa 3x seguidas antes de comitar.
+
 ### Testes automatizados (Playwright)
 Ver `tests/` — 18 arquivos de teste (`test_*.js`) rodando contra `app/bancada-3d.html` (17 suítes) e um (`test_standalone_firebase.js`) contra `app/biri-prints-3d-standalone.html` com um mock do Firebase. Rode `npm test` (ou `node tests/run-all.js`) depois de `npm install` — os testes usam o Chromium gerenciado pelo próprio Playwright (rode `npx playwright install chromium` na primeira vez).
 

@@ -91,10 +91,9 @@
   }
   .hamburger{display:inline-flex; background:none; border:none; color:var(--text); padding:4px; margin-right:2px; flex:none;}
   .hamburger svg{width:24px; height:24px;}
-  .mark{width:30px; height:30px; flex:none; color:var(--accent);}
+  .logo-img-header{height:40px; width:auto; flex:none;}
   header.top .titulo{min-width:0; overflow:hidden;}
-  header.top h1{font-size:1.15rem; letter-spacing:.02em; text-transform:uppercase; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  header.top .tagline{font-size:.72rem; color:var(--text-muted); letter-spacing:.03em; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  header.top .tagline{font-size:.72rem; color:var(--text-muted); letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   header.top #vendedorAtualBox{margin-left:auto;}
   /* No celular não cabe "Danilo · trocar" + "Sair" por extenso ao lado do nome do app sem
      quebrar linha — viram um menu compacto atrás de um ícone (ver #btnUsuarioMenu). No
@@ -351,8 +350,7 @@
     width:100%; max-width:360px; background:var(--surface); border:1px solid var(--border);
     border-radius:16px; padding:28px 24px; box-shadow:var(--shadow);
   }
-  .login-card .mark{display:block; margin:0 auto 10px;}
-  .login-card h1{text-align:center; font-size:1.1rem; letter-spacing:.02em; text-transform:uppercase; font-weight:600; margin-bottom:2px;}
+  .login-card .logo-img{display:block; margin:0 auto 14px; width:220px; height:auto;}
   .login-card .cap{text-align:center; font-size:.8rem; color:var(--text-muted); margin-bottom:18px;}
   #btnLogout{margin-left:auto;}
 </style>
@@ -361,8 +359,7 @@
 
 <div id="loginScreen" class="login-screen">
   <div class="login-card">
-    <svg class="mark" viewBox="0 0 32 32" fill="none" style="width:34px;height:34px;"><path d="M6 24 L16 4 L26 24" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 24h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M16 4v8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-    <h1>Biri Prints 3D</h1>
+    <img class="logo-img" src="assets/logo.png" alt="Biri Prints 3D">
     <p class="cap">Entre pra acessar seu catálogo e orçamentos</p>
     <div class="stack">
       <label class="field"><span>E-mail</span><input class="ipt" id="loginEmail" type="email" autocomplete="username"></label>
@@ -384,9 +381,8 @@
   <div class="app-content">
     <header class="top">
       <button class="hamburger" id="btnAbrirMenu" aria-label="Abrir menu"><svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-      <svg class="mark" viewBox="0 0 32 32" fill="none"><path d="M6 24 L16 4 L26 24" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 24h12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M16 4v8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <img class="logo-img-header" src="assets/logo.png" alt="Biri Prints 3D">
       <div class="titulo">
-        <h1>Biri Prints 3D</h1>
         <div class="tagline">Precificação 3D</div>
       </div>
       <div id="vendedorAtualBox"></div>
