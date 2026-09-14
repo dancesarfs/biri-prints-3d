@@ -18,6 +18,18 @@ Desde 2026-09-11, quando a standalone alcançou paridade funcional completa com 
 
 Suíte Playwright em `tests/`, sem framework de teste (cada arquivo é um script que roda sozinho e usa `process.exitCode = 1` pra sinalizar falha). Rode com `npm test` (ou `node tests/run-all.js`) depois de `npm install` e `npx playwright install chromium`. **Sempre rode a suíte completa antes de considerar uma mudança pronta** — o histórico em `docs/bancada-3d-app.md` mostra várias regressões sutis (HTML mal-fechado, navegação quebrada) que só a suíte pegou.
 
+## Padrão de UI: botão de criar/cadastrar
+
+Toda tela de cadastro (uma lista de registros com Editar/Excluir por item — Catálogo, Impressoras, Materiais, Grupos de kit, Promoções sazonais, Vendedores, Clientes, Orçamentos, Cores, e qualquer tela nova do mesmo tipo) usa **só** o FAB (`addFab(id, onClick)`, já definido no arquivo) como botão de criar:
+
+- Botão circular azul, ícone "+", **fixo no canto inferior direito** (`position:fixed`), **sempre visível** — inclusive com a lista vazia.
+- Chamado no final da função de render da tela (ex.: `addFab('fabAddMaterial', ()=>openMaterialEditor(null))`), depois de montar a lista — `renderMain()` já remove todo `.fab` no início de cada render, então cada tela precisa chamar `addFab` de novo a cada vez que renderiza (normal e vazia).
+- **Não conviver** com um botão de texto solto (`+ X`) fazendo a mesma coisa na mesma tela — o FAB substitui esse botão, não se soma a ele.
+- Uma chamada centralizada no estado vazio (ex.: "Adicionar Produto" no meio da tela, como no Catálogo) pode continuar existindo **junto** com o FAB — isso não é duplicação, é reforço num momento em que a tela está vazia.
+- **Pedidos é exceção**: não tem FAB nem qualquer botão de criar, de propósito — não existe fluxo de "criar pedido do zero" (pedido só nasce convertendo um orçamento aprovado em Orçamentos). Parâmetros de custo também não se aplica — é formulário único, não lista de cadastros.
+
+Referência de implementação: `addFab` (~linha 852) e seu uso em `renderCatalogo`/`renderClientes`/`renderOrcamentos`.
+
 ## Estilo de trabalho que o usuário espera
 
 A leitura de `docs/bancada-3d-app.md` deixa isso claro pelo padrão repetido: antes de decisões de design com mais de uma opção razoável, é comum apresentar o levantamento e perguntar ao usuário em vez de decidir sozinho — e depois de implementar, validar visualmente antes de dar como concluído.

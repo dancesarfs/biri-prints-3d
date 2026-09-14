@@ -72,7 +72,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
 
   // ---------- setup pra desconto de kit: material + impressora + 2 produtos + grupo + promoção ----------
   await abrirAbaStandalone(page, 'admin-materiais');
-  await page.click('#btnAddMat');
+  await page.click('#fabAddMaterial');
   await page.waitForSelector('#mNome');
   await page.fill('#mNome', 'PLA Kit');
   await page.fill('#mPreco', '100');
@@ -80,7 +80,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   await page.waitForTimeout(100);
 
   await abrirAbaStandalone(page, 'admin-impressoras');
-  await page.click('#btnAddImp');
+  await page.click('#fabAddImpressora');
   await page.waitForSelector('#iNome');
   await page.fill('#iNome', 'Impressora Kit');
   await page.fill('#iPreco', '3000');
@@ -102,7 +102,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   }
 
   await abrirAbaStandalone(page, 'admin-grupos');
-  await page.click('#btnAddGrupo');
+  await page.click('#fabAddGrupo');
   await page.waitForSelector('#gNome');
   await page.fill('#gNome', 'Grupo Desconto Manual');
   const prodCheckboxes = await page.$$('.grupo-prod-chk');
@@ -111,7 +111,7 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
   await page.waitForTimeout(100);
 
   await abrirAbaStandalone(page, 'admin-promocoes');
-  await page.click('#btnAddPromo');
+  await page.click('#fabAddPromocao');
   await page.waitForSelector('#pNome');
   await page.fill('#pNome', 'Promo Desconto Manual');
   await page.selectOption('#pGrupo', { label: 'Grupo Desconto Manual' });

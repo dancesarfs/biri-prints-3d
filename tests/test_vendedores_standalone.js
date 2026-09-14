@@ -53,8 +53,8 @@ const FAKE_FIREBASE_JS = fs.readFileSync(path.resolve(__dirname, 'fake_firebase.
 
   // ---------- 2. cadastro em Admin > Vendedores: ativo por padrão, badge Ativo/Inativo, editar ----------
   await abrirAbaStandalone(page, 'admin-vendedores');
-  await page.waitForSelector('#btnAddVendedor');
-  await page.click('#btnAddVendedor');
+  await page.waitForSelector('#fabAddVendedor');
+  await page.click('#fabAddVendedor');
   await page.waitForSelector('#vNome');
   const ativoPadrao = await page.$eval('#vAtivo', el => el.checked);
   assert(ativoPadrao === true, 'checkbox "ativo" deve vir marcada por padrão ao cadastrar um vendedor novo');
