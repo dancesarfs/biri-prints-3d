@@ -531,7 +531,7 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 // (ex.: nome gravado). Toda peça tem pelo menos 1 parte — a peça "simples" de sempre é só uma
 // peça com 1 parte só, sem nenhuma personalização marcada (o caso comum não precisa de tela extra).
 function novaParteDefault(){
-  return {id: uid(), nome: '', tipo_cor: 'fixa', cor_fixa_id: '', texto_personalizavel: false, rotulo_texto: '', texto_max_chars: null};
+  return {id: uid(), nome: '', tipo_cor: 'fixa', cor_fixa_id: '', texto_personalizavel: false, rotulo_texto: '', texto_max_chars: null, texto_obrigatorio: false};
 }
 const normalizarBusca = s => (s||'').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -1630,7 +1630,11 @@ function openProdutoEditor(id, duplicar){
             <div class="grid-2">
               <label class="field"><span>Rótulo do campo<span class="req">*</span></span><input class="ipt parte-rotulo" data-idx="${i}" value="${pt.rotulo_texto||''}" placeholder="Ex.: Nome"></label>
               <label class="field"><span>Limite de caracteres (opcional)</span><input class="ipt parte-maxchars" data-idx="${i}" type="number" min="1" step="1" value="${pt.texto_max_chars||''}" placeholder="Sem limite"></label>
-            </div>` : ''}
+            </div>
+            <label class="row" style="gap:8px; cursor:pointer;">
+              <input type="checkbox" class="parte-texto-obrig" data-idx="${i}" style="width:17px;height:17px;flex:none;" ${pt.texto_obrigatorio?'checked':''}>
+              <span style="font-size:.84rem;">Texto obrigatório (bloqueia converter o orçamento em pedido sem preencher)</span>
+            </label>` : ''}
         </div>`;
       }).join('');
 
@@ -1640,6 +1644,7 @@ function openProdutoEditor(id, duplicar){
       box.querySelectorAll('.parte-texto-chk').forEach(chk=> chk.addEventListener('change', ()=>{ partes[Number(chk.dataset.idx)].texto_personalizavel = chk.checked; renderPartes(); }));
       box.querySelectorAll('.parte-rotulo').forEach(inp=> inp.addEventListener('input', ()=>{ partes[Number(inp.dataset.idx)].rotulo_texto = inp.value; }));
       box.querySelectorAll('.parte-maxchars').forEach(inp=> inp.addEventListener('input', ()=>{ partes[Number(inp.dataset.idx)].texto_max_chars = inp.value; }));
+      box.querySelectorAll('.parte-texto-obrig').forEach(chk=> chk.addEventListener('change', ()=>{ partes[Number(chk.dataset.idx)].texto_obrigatorio = chk.checked; }));
       box.querySelectorAll('[data-rm-parte]').forEach(b=> b.addEventListener('click', ()=>{ partes.splice(Number(b.dataset.rmParte),1); renderPartes(); }));
     };
     renderPartes();
@@ -1705,6 +1710,7 @@ function openProdutoEditor(id, duplicar){
         texto_personalizavel: !!p.texto_personalizavel,
         rotulo_texto: p.texto_personalizavel ? (p.rotulo_texto||'').trim() : '',
         texto_max_chars: (p.texto_personalizavel && Number(p.texto_max_chars)>0) ? Number(p.texto_max_chars) : null,
+        texto_obrigatorio: p.texto_personalizavel ? !!p.texto_obrigatorio : false,
       }));
       const data = {nome, material_id, impressora_id, gramatura, tempo_horas: h+m/60, custo_embalagem, ajuste_manual, perfis_impressora, partes: partesFinal};
 
@@ -1846,6 +1852,7 @@ function renderOrcamentos(main){
       ].filter(Boolean).join(' · ');
       const itensHtml = expanded ? `<div class="stack" style="margin-top:10px;">${o.itens.map(it=>`
         <div class="list-line"><span>${it.nome} × ${fmtNum(it.quantidade,0)}</span><span class="mono">${fmtBRL(it.preco_unit*it.quantidade)}</span></div>
+        ${personalizacaoResumoLinhaHtml(it)}
       `).join('')}
       ${(o.desconto_kit_total>0 || o.desconto_manual_valor>0) ? `<div class="list-line"><span>Subtotal (sem desconto)</span><span class="mono">${fmtBRL(o.subtotal)}</span></div>` : ''}
       ${(o.desconto_kit_linhas&&o.desconto_kit_linhas.length) ? o.desconto_kit_linhas.map(l=>`
@@ -1897,7 +1904,13 @@ function renderOrcamentos(main){
       el.addEventListener('click', (e)=>{ e.stopPropagation(); toggleOrcamentoStatus(el.dataset.toggleStatus); });
     });
     list.querySelectorAll('[data-converter-pedido]').forEach(el=>{
-      el.addEventListener('click', (e)=>{ e.stopPropagation(); confirmThenAction(el, ()=>converterEmPedido(el.dataset.converterPedido), {confirmText:'Confirmar pedido?', confirmClass:'btn-primary'}); });
+      el.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const o = byId(state.orcamentos, el.dataset.converterPedido);
+        const pendente = o ? personalizacaoPendente(o) : null;
+        if(pendente){ showToast(`Falta escolher a personalização de "${pendente}" antes de converter em pedido`); return; }
+        confirmThenAction(el, ()=>converterEmPedido(el.dataset.converterPedido), {confirmText:'Confirmar pedido?', confirmClass:'btn-primary'});
+      });
     });
     list.querySelectorAll('[data-del-orc]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); confirmThenDelete(el, ()=>deleteOrcamento(el.dataset.delOrc)); });
@@ -2036,6 +2049,7 @@ function renderPedidos(main){
       ].filter(Boolean).join(' · ');
       const itensHtml = expanded ? `<div class="stack" style="margin-top:10px;">${o.itens.map(it=>`
         <div class="list-line"><span>${it.nome} × ${fmtNum(it.quantidade,0)}</span><span class="mono">${fmtBRL(it.preco_unit*it.quantidade)}</span></div>
+        ${personalizacaoResumoLinhaHtml(it)}
       `).join('')}
       ${(o.desconto_kit_total>0 || o.desconto_manual_valor>0) ? `<div class="list-line"><span>Subtotal (sem desconto)</span><span class="mono">${fmtBRL(o.subtotal)}</span></div>` : ''}
       ${(o.desconto_kit_linhas&&o.desconto_kit_linhas.length) ? o.desconto_kit_linhas.map(l=>`
@@ -2218,7 +2232,14 @@ function saudacaoCliente(o){
   return o.cliente ? `Oi, ${o.cliente}!` : 'Oi!';
 }
 const TEXTO_STATUS_PEDIDO = {
-  aberto: o => `■ *Pedido recebido — Biri Prints 3D*\n\n${saudacaoCliente(o)} Recebemos seu pedido certinho por aqui e ele já entrou na nossa fila de produção. Qualquer novidade eu te aviso por aqui. Obrigado pela confiança!`,
+  // Único status com uma exceção à regra "nunca detalhar personalização no WhatsApp" (ver
+  // blocoPersonalizacaoRecebido): é o único ponto de checagem com o cliente antes de gastar
+  // material/tempo de impressão numa peça com cor/nome errado — os demais avisos seguem genéricos.
+  aberto: o => {
+    const bloco = blocoPersonalizacaoRecebido(o);
+    const confirmacao = bloco ? `\n\nSó pra confirmar a personalização antes de eu começar a imprimir:\n${bloco}\n\nTá tudo certo? Qualquer ajuste, me chama por aqui antes que eu comece a produção.` : '';
+    return `■ *Pedido recebido — Biri Prints 3D*\n\n${saudacaoCliente(o)} Recebemos seu pedido certinho por aqui e ele já entrou na nossa fila de produção.${confirmacao} Qualquer novidade eu te aviso por aqui. Obrigado pela confiança!`;
+  },
   em_producao: o => `● *Atualização do seu pedido — Biri Prints 3D*\n\n${saudacaoCliente(o)} Seu pedido está em produção agora — já colocamos pra rodar. Assim que sair te aviso por aqui!`,
   pronto: o => `● *Atualização do seu pedido — Biri Prints 3D*\n\n${saudacaoCliente(o)} Seu pedido ficou pronto! Já podemos combinar a entrega ou retirada — me chama por aqui.`,
   entregue: o => `● *Atualização do seu pedido — Biri Prints 3D*\n\n${saudacaoCliente(o)} Seu pedido foi entregue. Espero que goste bastante — se puder me contar o que achou, fico feliz em ouvir. Obrigado por comprar com a gente!`,
@@ -2260,14 +2281,16 @@ function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
   if(copiarDe){
     // Recalcula pelas condições comerciais de agora: item de catálogo busca o preço ATUAL do
     // produto (pode ter mudado desde o orçamento original); item avulso não tem "preço atual" pra
-    // buscar, então é copiado do jeito que estava.
+    // buscar, então é copiado do jeito que estava. "personalizacoes" nunca é herdada — mesma regra
+    // do desconto negociado, nasce em branco pra escolher de novo nessa cópia.
     draft.itens = copiarDe.itens.map(it=>{
       const p = it.produto_id ? byId(state.produtos, it.produto_id) : null;
       if(p){
         const r = precoAjustado(p, state.config);
         return {nome:p.nome, preco_unit:r.precoFinal, quantidade:it.quantidade, produto_id:p.id, impressora_id:p.impressora_id, incluido:true};
       }
-      return {...it, incluido:true};
+      const {personalizacoes, ...resto} = it;
+      return {...resto, incluido:true};
     });
   } else if(existing){
     draft.itens = existing.itens.slice();
@@ -2421,6 +2444,41 @@ function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
     renderClienteSecao();
 
     let expandirImpressoraIdx = null;
+    let expandirPersonalizarIdx = null;
+
+    // Uma unidade por bloco, um select de cor (filtrado pelo material da peça, igual ao editor de
+    // peça) e/ou um input de texto por parte personalizável dessa peça — só as partes que pedem
+    // alguma escolha aparecem aqui (ver partesPersonalizaveis). Com só 1 parte personalizável (o
+    // caso comum), os campos vêm sem prefixo de nome pra não poluir; com mais de 1, cada campo é
+    // prefixado pelo nome da parte pra não confundir qual é qual.
+    const renderPersonalizarForm = (i, it, produto)=>{
+      const partes = partesPersonalizaveis(produto);
+      const unidadesHtml = Array.from({length: it.quantidade}, (_, u)=>{
+        const unidade = (it.personalizacoes && it.personalizacoes[u]) || {};
+        const camposHtml = partes.map((p, pi)=>{
+          const valor = unidade[p.id] || {};
+          const prefixo = partes.length>1 ? (p.nome || `Parte ${pi+1}`)+' — ' : '';
+          let html = '';
+          if(p.tipo_cor==='personalizavel'){
+            html += `<label class="field" style="flex:1;"><span>${prefixo}Cor</span><select class="ipt pz-cor" data-u="${u}" data-parte="${p.id}">${corOptionsHtml(valor.cor_id, produto.material_id)}</select></label>`;
+          }
+          if(p.texto_personalizavel){
+            html += `<label class="field" style="flex:1;"><span>${prefixo}${p.rotulo_texto||'Texto'}${p.texto_obrigatorio?'':' (opcional)'}</span><input class="ipt pz-texto" data-u="${u}" data-parte="${p.id}" value="${valor.texto||''}" ${p.texto_max_chars?`maxlength="${p.texto_max_chars}"`:''}></label>`;
+          }
+          return html;
+        }).join('');
+        return `<div class="row" style="gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:6px;">
+          <span style="font-size:.78rem; color:var(--text-muted); min-width:64px;">Unidade ${u+1}</span>
+          ${camposHtml}
+        </div>`;
+      }).join('');
+      return `<div class="card" style="padding:10px; margin-top:6px; background:var(--surface-2);">
+        <div class="stack">
+          ${it.quantidade>1 ? `<button type="button" class="btn btn-sm" data-aplicar-todas-pz="${i}">Aplicar a escolha da Unidade 1 pra todas</button>` : ''}
+          ${unidadesHtml}
+        </div>
+      </div>`;
+    };
 
     const renderTrocaImpressoraForm = (i, it, produto)=>{
       const impressoraOptions = state.impressoras.map(imp=>`<option value="${imp.id}" ${imp.id===it.impressora_id?'selected':''}>${imp.nome}</option>`).join('');
@@ -2461,6 +2519,12 @@ function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
           <button type="button" class="textbtn" data-toggle-imp="${i}" style="font-size:.74rem; padding:2px 0;">🖨️ ${impressoraAtual ? impressoraAtual.nome : 'impressora'} ${expandirImpressoraIdx===i ? '▲' : '▼'}</button>
           ${expandirImpressoraIdx===i ? renderTrocaImpressoraForm(i, it, produto) : ''}
         ` : '';
+        const progressoPz = produto ? personalizacaoItemProgresso(it, produto) : {aplicavel:false};
+        const personalizarHtml = progressoPz.aplicavel ? `
+          <button type="button" class="textbtn" data-toggle-personalizar="${i}" style="font-size:.74rem; padding:2px 0;">🎨 Personalizar (${progressoPz.completas}/${progressoPz.total} preenchidas) ${expandirPersonalizarIdx===i ? '▲' : '▼'}</button>
+          ${expandirPersonalizarIdx===i ? renderPersonalizarForm(i, it, produto) : ''}
+        ` : '';
+        const resumoPz = produto ? personalizacaoResumoUnidades(it, produto) : '';
         return `<div class="list-line" style="${incluido?'':'opacity:.45;'} flex-direction:column; align-items:stretch;">
           <div class="row" style="justify-content:space-between;">
             <label class="row" style="gap:8px; align-items:center; cursor:pointer; flex:1;">
@@ -2469,7 +2533,9 @@ function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
             </label>
             <span class="row" style="gap:10px;"><span class="mono">${fmtBRL(it.preco_unit*it.quantidade)}</span><button class="btn btn-ghost btn-sm" data-rm="${i}">✕</button></span>
           </div>
+          ${resumoPz ? `<div class="pz-resumo" data-idx="${i}" style="font-size:.74rem; color:var(--text-muted); margin-top:2px;">🎨 ${resumoPz}</div>` : ''}
           ${trocaImpressoraHtml}
+          ${personalizarHtml}
         </div>`;
       }).join('') : `<p style="color:var(--text-muted); font-size:.85rem;">Nenhum item ainda.</p>`;
       list.querySelectorAll('[data-rm]').forEach(b=> b.addEventListener('click', ()=>{ draft.itens.splice(Number(b.dataset.rm),1); renderItens(); }));
@@ -2517,6 +2583,39 @@ function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
         renderItens();
         showToast('Impressora do item atualizada');
       }));
+
+      list.querySelectorAll('[data-toggle-personalizar]').forEach(b=> b.addEventListener('click', ()=>{
+        const idx = Number(b.dataset.togglePersonalizar);
+        expandirPersonalizarIdx = expandirPersonalizarIdx===idx ? null : idx;
+        renderItens();
+      }));
+      if(expandirPersonalizarIdx !== null){
+        const idx = expandirPersonalizarIdx;
+        const it = draft.itens[idx];
+        // Só o select de cor re-renderiza a lista ao vivo (precisa recalcular o contador de
+        // preenchidas); o input de texto só grava no estado a cada tecla, sem re-renderizar (senão
+        // o campo perderia o foco/cursor no meio da digitação) — o resumo/contador só é atualizado
+        // de novo quando o campo perde o foco (ou em qualquer outra ação que já re-renderize).
+        list.querySelectorAll('.pz-cor').forEach(sel=> sel.addEventListener('change', ()=>{
+          setPersonalizacaoValor(it, Number(sel.dataset.u), sel.dataset.parte, 'cor_id', sel.value);
+          renderItens();
+        }));
+        list.querySelectorAll('.pz-texto').forEach(inp=> {
+          inp.addEventListener('input', ()=>{
+            setPersonalizacaoValor(it, Number(inp.dataset.u), inp.dataset.parte, 'texto', inp.value);
+          });
+          inp.addEventListener('blur', ()=> renderItens());
+        });
+        const btnAplicarTodas = list.querySelector(`[data-aplicar-todas-pz="${idx}"]`);
+        if(btnAplicarTodas){
+          btnAplicarTodas.addEventListener('click', ()=>{
+            const unidade0 = (it.personalizacoes && it.personalizacoes[0]) || {};
+            it.personalizacoes = Array.from({length: it.quantidade}, ()=> JSON.parse(JSON.stringify(unidade0)));
+            renderItens();
+            showToast('Personalização da Unidade 1 aplicada a todas');
+          });
+        }
+      }
 
       const itensIncluidos = draft.itens.filter(it=> it.incluido !== false);
       const subtotal = itensIncluidos.reduce((s,it)=>s+it.preco_unit*it.quantidade,0);
@@ -3035,6 +3134,99 @@ function corOptionsHtml(selecionadoId, materialId){
   html += visiveis.map(c=>`<option value="${c.id}" ${selecionadoId===c.id?'selected':''}>${c.nome}${c.ativa===false?' (inativa)':''}</option>`).join('');
   if(selecionadaForaDaLista) html += `<option value="${selecionadaForaDaLista.id}" selected>${selecionadaForaDaLista.nome} (não disponível nesse material)</option>`;
   return html;
+}
+
+/* ---------------- personalização por unidade no orçamento (Etapa 2) ---------------- */
+// Partes de uma peça que exigem alguma escolha por unidade — cor personalizável e/ou texto
+// personalizável. Partes com cor fixa (e sem texto) já ficam 100% decididas no cadastro da peça,
+// não aparecem aqui.
+function partesPersonalizaveis(produto){
+  return (produto?.partes || []).filter(p => p.tipo_cor === 'personalizavel' || p.texto_personalizavel);
+}
+// Uma unidade só conta como "preenchida" pra uma parte se: cor escolhida, quando a parte pede cor
+// (sempre obrigatória — toda peça impressa precisa de uma cor definida); e texto preenchido, quando
+// a parte pede texto E foi marcada como obrigatória no cadastro (texto opcional nunca bloqueia).
+function personalizacaoUnidadeCompleta(parte, valor){
+  if(parte.tipo_cor==='personalizavel' && !(valor && valor.cor_id)) return false;
+  if(parte.texto_personalizavel && parte.texto_obrigatorio && !(valor && String(valor.texto||'').trim())) return false;
+  return true;
+}
+// Quantas unidades (de 0 até it.quantidade) já têm todas as partes personalizáveis preenchidas —
+// usado tanto pro contador no botão "Personalizar" quanto pra bloquear a conversão em pedido.
+function personalizacaoItemProgresso(it, produto){
+  const partes = partesPersonalizaveis(produto);
+  if(partes.length===0) return {aplicavel:false, completas:0, total:0};
+  const total = it.quantidade;
+  let completas = 0;
+  for(let u=0; u<total; u++){
+    const unidade = (it.personalizacoes && it.personalizacoes[u]) || {};
+    if(partes.every(p => personalizacaoUnidadeCompleta(p, unidade[p.id]))) completas++;
+  }
+  return {aplicavel:true, completas, total};
+}
+// Grava a escolha (cor_id ou texto) de uma unidade/parte específica, criando a estrutura sob
+// demanda — item nasce sem "personalizacoes" até a primeira escolha (não precisa inicializar em
+// cada ponto que cria um item novo no orçamento).
+function setPersonalizacaoValor(it, unidadeIdx, parteId, campo, valor){
+  if(!it.personalizacoes) it.personalizacoes = [];
+  if(!it.personalizacoes[unidadeIdx]) it.personalizacoes[unidadeIdx] = {};
+  if(!it.personalizacoes[unidadeIdx][parteId]) it.personalizacoes[unidadeIdx][parteId] = {};
+  it.personalizacoes[unidadeIdx][parteId][campo] = valor;
+}
+// Resumo compacto de um item pra exibir na lista (Orçamentos/Pedidos) e no bloco especial da
+// mensagem de "pedido recebido" — uma unidade por trecho ("1) Azul · 2) Vermelho — "Maria""),
+// só as unidades que já têm alguma escolha (nada preenchido ainda não aparece). Com mais de 1 parte
+// personalizável na mesma peça, cada trecho é prefixado pelo nome da parte pra não confundir qual é qual.
+function personalizacaoResumoUnidades(it, produto){
+  const partes = partesPersonalizaveis(produto);
+  if(!partes.length) return '';
+  const linhas = [];
+  for(let u=0; u<it.quantidade; u++){
+    const unidade = (it.personalizacoes && it.personalizacoes[u]) || {};
+    const partesTxt = partes.map((p, pi)=>{
+      const v = unidade[p.id] || {};
+      const corNome = v.cor_id ? (byId(state.cores, v.cor_id)?.nome || '') : '';
+      const bits = [corNome, v.texto ? `"${v.texto}"` : ''].filter(Boolean);
+      if(!bits.length) return '';
+      const prefixo = partes.length>1 ? `${p.nome || 'Parte '+(pi+1)}: ` : '';
+      return prefixo + bits.join(' — ');
+    }).filter(Boolean).join('; ');
+    if(partesTxt) linhas.push(it.quantidade>1 ? `${u+1}) ${partesTxt}` : partesTxt);
+  }
+  return linhas.join(' · ');
+}
+// Primeiro item (nome da peça) com personalização pendente — usado pra bloquear a conversão em
+// pedido com uma mensagem clara de qual peça falta terminar. null quando não falta nada.
+function personalizacaoPendente(o){
+  for(const it of o.itens){
+    if(it.incluido===false) continue;
+    const produto = it.produto_id ? byId(state.produtos, it.produto_id) : null;
+    if(!produto) continue;
+    const prog = personalizacaoItemProgresso(it, produto);
+    if(prog.aplicavel && prog.completas < prog.total) return it.nome;
+  }
+  return null;
+}
+// Bloco extra SÓ na mensagem de "pedido recebido" (nunca nas de mudança de status nem no texto do
+// orçamento) — resumo compacto do que foi escolhido, pro vendedor confirmar com o cliente ANTES de
+// gastar material/tempo de impressão numa peça com cor/nome errado. Item sem nenhuma personalização
+// escolhida não entra; se o pedido inteiro não tiver nada personalizado, o bloco todo vem vazio.
+function blocoPersonalizacaoRecebido(o){
+  const linhas = (o.itens||[]).filter(it=>it.incluido!==false).map(it=>{
+    const produto = it.produto_id ? byId(state.produtos, it.produto_id) : null;
+    if(!produto) return null;
+    const resumo = personalizacaoResumoUnidades(it, produto);
+    return resumo ? `◆ *${it.nome}*: ${resumo}` : null;
+  }).filter(Boolean);
+  return linhas.join('\n');
+}
+// Mesmo resumo compacto, mas pra exibir junto do item nas listas de Orçamentos/Pedidos (não no
+// WhatsApp) — reaproveita personalizacaoResumoUnidades pra não duplicar a formatação.
+function personalizacaoResumoLinhaHtml(it){
+  const produto = it.produto_id ? byId(state.produtos, it.produto_id) : null;
+  if(!produto) return '';
+  const resumo = personalizacaoResumoUnidades(it, produto);
+  return resumo ? `<div class="list-line" style="font-size:.74rem; color:var(--text-muted);"><span>🎨 ${resumo}</span></div>` : '';
 }
 
 // ---- "Vendedor atual" (quem está usando o app agora) ----
