@@ -22,3 +22,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
 
       - run: npm test
+
+      - name: Confere que o FIREBASE_CONFIG está em produção (só quando o alvo é a main)
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.base_ref == 'main')
+        run: node tests/check_firebase_config.js
