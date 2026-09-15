@@ -14,6 +14,8 @@ Desde 2026-09-16, o projeto tem dois ambientes Firebase separados, pra parar de 
 - **QA** (branch `qa`, projeto Firebase `biri-prints-3d-qa`) — ambiente de validação. Todo push na branch `qa` publica automaticamente `app/biri-prints-3d-standalone.html` no Firebase Hosting desse projeto (workflow `.github/workflows/deploy-qa.yml`), em **https://biri-prints-3d-qa.web.app/**.
 - **PROD** (branch `main`, projeto Firebase `biri-prints-3d`) — o que está no ar de verdade, publicado pelo GitHub Pages (inalterado, ver `docs/STANDALONE-SETUP.md`).
 
+**Primeiro acesso ao QA**: como é um projeto Firebase novo, o Authentication dele nasce sem nenhum usuário — login/senha de produção **não funcionam** lá (cada projeto Firebase tem sua própria lista de usuários, isolada). Pra conseguir entrar em https://biri-prints-3d-qa.web.app/, cadastre um usuário direto no Firebase Console → projeto `biri-prints-3d-qa` → **Authentication** → aba **Users** → **Add user** (pode ser o mesmo e-mail/senha de produção, ou um dedicado só pra QA — são bancos completamente separados).
+
 **Regra a partir de agora: todo trabalho novo (funcionalidade ou correção) nasce de uma branch a partir da `qa`, e a PR aponta pra `qa` como base** — nunca direto pra `main`. Só mescla `qa` → `main` quando o usuário pedir explicitamente que uma leva de mudanças já validada em QA está pronta pra produção.
 
 A árvore da `qa` difere da `main` em exatamente 4 pontos, que **nunca** podem ir pra `main`:
