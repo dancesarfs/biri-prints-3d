@@ -36,7 +36,7 @@ Desde 2026-09-16, o projeto roda em dois ambientes Firebase separados, cada um n
 | | Branch | Projeto Firebase | Publicado em |
 |---|---|---|---|
 | **QA** (validação) | `qa` | `biri-prints-3d-qa` | https://biri-prints-3d-qa.web.app/ (deploy automático a cada push, via `.github/workflows/deploy-qa.yml`) |
-| **Produção** | `main` | `biri-prints-3d` | GitHub Pages (ver `docs/STANDALONE-SETUP.md`) |
+| **Produção** | `main` | `biri-prints-3d` | **Dois lugares em paralelo** (desde 2026-09-16, enquanto a migração é testada): GitHub Pages, como sempre (ver `docs/STANDALONE-SETUP.md`), **e** https://biri-prints-3d.web.app/ (deploy automático a cada push, via `.github/workflows/deploy-prod.yml`) — mesmo HTML, mesmo Firestore, só duas URLs diferentes |
 
 Todo trabalho novo nasce de uma branch a partir da `qa` e é testado em https://biri-prints-3d-qa.web.app/ antes de ir pro ar — `main`/produção só recebe uma leva de mudanças quando ela já foi validada em QA, através de uma PR dedicada (nunca um push direto). O processo completo de promoção `qa` → `main`, incluindo por que ele existe e o checklist pra não levar configuração de QA pra produção por engano, está documentado no `CLAUDE.md`.
 
