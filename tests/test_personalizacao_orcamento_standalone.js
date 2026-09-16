@@ -200,35 +200,64 @@ async function configurarParteDaPeca(page, nomeProduto, { textoObrigatorio }) {
   await page.click('#oSalvar');
   await page.waitForSelector('.card h3:has-text("Cliente Personalização")');
 
-  // ---------- 6. converter em pedido com o Chaveiro incompleto (falta o texto obrigatório) -> bloqueia ----------
-  await page.click('.card:has(h3:has-text("Cliente Personalização")) [data-toggle-orc]');
-  await page.waitForSelector('[data-converter-pedido]');
-  await page.click('[data-converter-pedido]');
-  await page.waitForTimeout(150);
-  const aindaEmOrcamentos = await page.$('.card:has(h3:has-text("Cliente Personalização")) [data-converter-pedido]');
-  assert(aindaEmOrcamentos !== null, 'com o Chaveiro sem o texto obrigatório preenchido, a conversão em pedido deve ser bloqueada (continua como orçamento)');
-
-  // ---------- 7. completa o texto obrigatório do Chaveiro e converte de novo -> agora funciona ----------
-  await page.click('.card:has(h3:has-text("Cliente Personalização")) [data-editar-orc]');
-  await page.waitForSelector('#oItensList');
-  await page.click('[data-toggle-personalizar="1"]');
-  await page.waitForSelector('.pz-texto[data-u="0"]');
-  await page.fill('.pz-texto[data-u="0"]', 'Sofia');
-  await page.waitForTimeout(80);
-  await page.click('#oSalvar');
-  await page.waitForTimeout(150);
-
+  // ---------- 6. converter em pedido funciona mesmo com o Chaveiro incompleto (o bloqueio saiu daqui) ----------
   await page.click('.card:has(h3:has-text("Cliente Personalização")) [data-toggle-orc]');
   await page.waitForSelector('[data-converter-pedido]');
   await page.click('[data-converter-pedido]');
   await page.waitForTimeout(80);
   await page.click('[data-converter-pedido]'); // 2º clique confirma
   await page.waitForTimeout(150);
+  const cardPed = '.card:has(h3:has-text("Cliente Personalização"))';
+  await abrirAbaStandalone(page, 'pedidos');
+  await page.waitForSelector(`${cardPed} [data-toggle-orc]`, { timeout: 3000 }).catch(() => {});
+  assert(await page.$(`${cardPed} [data-toggle-orc]`) !== null, 'a conversão em pedido não deve mais ser bloqueada por personalização pendente — deve aparecer em Pedidos');
+
+  // ---------- 7. pedido com o Chaveiro pendente: badge "Aguardando personalização" e botão "Pedir personalização" ----------
+  await page.click(`${cardPed} [data-toggle-orc]`);
+  await page.waitForSelector(`${cardPed} [data-status-pedido]`);
+  assert(await page.locator(`${cardPed} .badge-pending`).textContent() === 'Aguardando personalização', 'card do pedido deve mostrar o badge "Aguardando personalização" enquanto o Chaveiro não for preenchido');
+
+  // ---------- 7a. filtro "Aguardando personalização" lista esse pedido ----------
+  await page.click('[data-filtro-ped="pendente_personalizacao"]');
+  await page.waitForTimeout(80);
+  assert(await page.$('.card h3:has-text("Cliente Personalização")') !== null, 'filtro "Aguardando personalização" deve listar o pedido com o Chaveiro pendente');
+  await page.click('[data-filtro-ped="todos"]');
+  await page.waitForTimeout(80);
+  await page.waitForSelector(`${cardPed} [data-status-pedido]`);
+
+  // ---------- 7b. "Pedir personalização" gera WhatsApp listando só o Chaveiro (Porta-canetas já está completo) ----------
+  const popupPedirPz = page.waitForEvent('popup');
+  await page.click(`${cardPed} [data-pedir-personalizacao]`);
+  const popupPz = await popupPedirPz;
+  await popupPz.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => {});
+  const textoPedirPz = decodeURIComponent(popupPz.url());
+  assert(textoPedirPz.includes('Chaveiro redondo'), `mensagem de "Pedir personalização" deve listar o Chaveiro pendente — obtido: ${textoPedirPz}`);
+  assert(!textoPedirPz.includes('Porta-canetas'), `mensagem de "Pedir personalização" não deve listar o Porta-canetas (já preenchido) — obtido: ${textoPedirPz}`);
+  await popupPz.close().catch(() => {});
+
+  // ---------- 7c. tentar avançar pra "Em produção" com o Chaveiro pendente é bloqueado (fica em "Aberto") ----------
+  await page.selectOption(`${cardPed} [data-status-pedido]`, 'em_producao');
+  const toastBloqueio = await page.locator('.toast').last().textContent();
+  assert(toastBloqueio.includes('personalização'), `toast deve explicar o bloqueio por personalização pendente — obtido: "${toastBloqueio}"`);
+  await page.waitForTimeout(150);
+  const statusDepoisDoBloqueio = await page.locator(`${cardPed} [data-status-pedido]`).inputValue();
+  assert(statusDepoisDoBloqueio === 'aberto', `pedido com personalização pendente não deve avançar pra "Em produção" — obtido: "${statusDepoisDoBloqueio}"`);
+
+  // ---------- 7d. preenche o texto do Chaveiro direto no card do pedido (sem abrir o editor de peça) ----------
+  await page.waitForSelector('.ppz-texto[data-item="1"][data-u="0"]');
+  await page.fill('.ppz-texto[data-item="1"][data-u="0"]', 'Sofia');
+  await page.locator('.ppz-texto[data-item="1"][data-u="0"]').blur();
+  await page.waitForTimeout(150);
+  assert(await page.$(`${cardPed} .badge-pending`) === null, 'badge "Aguardando personalização" deve desaparecer depois do Chaveiro preenchido');
+  assert(await page.$(`${cardPed} [data-pedir-personalizacao]`) === null, 'botão "Pedir personalização" deve desaparecer depois do Chaveiro preenchido');
+
+  // ---------- 7e. agora "Em produção" é liberado ----------
+  await page.selectOption(`${cardPed} [data-status-pedido]`, 'em_producao');
+  await page.waitForTimeout(150);
+  const statusLiberado = await page.locator(`${cardPed} [data-status-pedido]`).inputValue();
+  assert(statusLiberado === 'em_producao', `sem personalização pendente, deve avançar normalmente pra "Em produção" — obtido: "${statusLiberado}"`);
 
   // ---------- 8. Pedidos: resumo aparece na lista, igual ao orçamento ----------
-  await abrirAbaStandalone(page, 'pedidos');
-  await page.waitForSelector('.card h3:has-text("Cliente Personalização")');
-  await page.click('.card:has(h3:has-text("Cliente Personalização")) [data-toggle-orc]');
   const resumosPedido = await page.locator('.list-line:has-text("🎨")').allTextContents();
   assert(resumosPedido.some(t => t.includes('Azul') && t.includes('Vermelho')), `lista de Pedidos deve mostrar o resumo da personalização do Porta-canetas — obtido: ${JSON.stringify(resumosPedido)}`);
   assert(resumosPedido.some(t => t.includes('Sofia')), `lista de Pedidos deve mostrar o resumo do Chaveiro (com o texto "Sofia") — obtido: ${JSON.stringify(resumosPedido)}`);
@@ -262,6 +291,47 @@ async function configurarParteDaPeca(page, nomeProduto, { textoObrigatorio }) {
   assert(rotulo.includes('0/3 preenchidas'), `"Copiar orçamento" não deve herdar a personalização do Porta-canetas — obtido: "${rotulo}"`);
   const temResumoNaCopia = await page.locator('.pz-resumo').count();
   assert(temResumoNaCopia === 0, '"Copiar orçamento" não deve mostrar nenhum resumo de personalização já preenchido');
+
+  // ---------- 11. pedido já avançado ANTES dessa checagem existir (ex.: dado antigo) nunca é bloqueado retroativamente ----------
+  // Descarta o rascunho aberto pelo "Copiar orçamento" do passo 10, pra não interferir no cenário abaixo.
+  await page.evaluate(() => closeModal());
+  await abrirAbaStandalone(page, 'orcamentos');
+  await page.waitForSelector('#fabNovoOrc');
+  await page.click('#fabNovoOrc');
+  await page.waitForSelector('[data-cliente-modo="novo"]');
+  await page.click('[data-cliente-modo="novo"]');
+  await page.waitForSelector('#oClienteNome');
+  await page.fill('#oClienteNome', 'Cliente Pedido Antigo');
+  const selChaveiro2 = await valorDoOptionPorTexto(page, 'oProdSel', 'Chaveiro redondo');
+  await page.selectOption('#oProdSel', selChaveiro2);
+  await page.fill('#oQtd', '1');
+  await page.click('#oAddItem');
+  await page.click('#oSalvar');
+  await page.waitForSelector('.card h3:has-text("Cliente Pedido Antigo")');
+  await page.click('.card:has(h3:has-text("Cliente Pedido Antigo")) [data-toggle-orc]');
+  await page.waitForSelector('[data-converter-pedido]');
+  await page.click('[data-converter-pedido]');
+  await page.waitForTimeout(80);
+  await page.click('[data-converter-pedido]');
+  await page.waitForTimeout(150);
+
+  // Simula um pedido que já estava em "Em produção" antes dessa funcionalidade existir (o Chaveiro
+  // nunca chegou a ser preenchido) — grava direto no estado, sem passar pelo guard de setStatusPedido.
+  await page.evaluate(() => {
+    const o = state.orcamentos.find(x => x.cliente === 'Cliente Pedido Antigo');
+    o.status_pedido = 'em_producao';
+    renderMain();
+  });
+  await abrirAbaStandalone(page, 'pedidos');
+  const cardAntigo = '.card:has(h3:has-text("Cliente Pedido Antigo"))';
+  await page.waitForSelector(`${cardAntigo} [data-toggle-orc]`);
+  assert(await page.locator(`${cardAntigo} .badge-pending`).textContent() === 'Aguardando personalização', 'mesmo um pedido "antigo" já em produção deve mostrar o badge (é sempre calculado ao vivo)');
+  await page.click(`${cardAntigo} [data-toggle-orc]`);
+  await page.waitForSelector(`${cardAntigo} [data-status-pedido]`);
+  await page.selectOption(`${cardAntigo} [data-status-pedido]`, 'pronto');
+  await page.waitForTimeout(150);
+  const statusAntigoDepois = await page.locator(`${cardAntigo} [data-status-pedido]`).inputValue();
+  assert(statusAntigoDepois === 'pronto', `pedido que já passou de "Aberto" antes dessa checagem existir não deve ser bloqueado retroativamente — obtido: "${statusAntigoDepois}"`);
 
   await browser.close();
   console.log(process.exitCode === 1 ? '\n=== ALGUM TESTE FALHOU ===' : '\n=== TODOS OS TESTES PASSARAM ===');
