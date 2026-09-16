@@ -1,0 +1,22 @@
+name: Deploy Produção (Firebase Hosting)
+
+# Publica em paralelo ao GitHub Pages por enquanto — os dois servem o mesmo conteúdo da main, até o
+# usuário decidir migrar de vez (ver CLAUDE.md). Não roda na branch qa (isso é o deploy-qa.yml,
+# apontando pro projeto de QA).
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy_prod:
+    name: Publica app/biri-prints-3d-standalone.html no Firebase Hosting (Produção)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy no Firebase Hosting (projeto biri-prints-3d)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: '${{ secrets.FIREBASE_PROD_SERVICE_ACCOUNT }}'
+          projectId: biri-prints-3d
+          channelId: live

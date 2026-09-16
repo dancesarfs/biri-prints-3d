@@ -1,0 +1,9 @@
+{
+  "hosting": {
+    "public": "app",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "**", "destination": "/biri-prints-3d-standalone.html" }
+    ]
+  }
+}
