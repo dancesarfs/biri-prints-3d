@@ -780,6 +780,17 @@ function irParaAba(tabId){
   renderNav();
   renderMain();
 }
+// Navega direto pro pedido correspondente já expandido — usado pelo link "Encerrado -> virou Pedido
+// #N" no card do orçamento. Mesmo id do orçamento original (converter em pedido só muda campos no
+// mesmo documento, nunca cria um novo), então basta ir pra aba Pedidos com esse id já marcado como
+// expandido, sem deixar o vendedor procurar o pedido de novo na lista.
+function irParaPedido(id){
+  state.tab = 'pedidos';
+  state.expandedOrc = id;
+  state.menuMobileAberto = false;
+  renderNav();
+  renderMain();
+}
 
 function renderNav(){
   const nav = document.getElementById('sidebarNav');
@@ -1871,7 +1882,7 @@ function renderOrcamentos(main){
         <div class="list-line" style="color:var(--accent);"><span>Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%)</span><span class="mono">− ${fmtBRL(l.desconto)}</span></div>
       `).join('') : ''}
       ${o.desconto_manual_valor>0 ? `<div class="list-line" style="color:var(--accent);"><span>Desconto negociado (${fmtNum(o.desconto_manual_pct,0)}%)</span><span class="mono">− ${fmtBRL(o.desconto_manual_valor)}</span></div>` : ''}
-      ${encerrado ? `<p style="font-size:.8rem; color:var(--text-muted); margin:10px 0 0;">Encerrado — virou <strong>Pedido${o.pedido_numero?' #'+o.pedido_numero:''}</strong>. Gerencie produção/pagamento na aba Pedidos.</p>` : ''}
+      ${encerrado ? `<button type="button" class="textbtn" data-ir-pedido="${o.id}" style="display:block; text-align:left; font-size:.8rem; padding:10px 0 0;">Encerrado — virou <strong>Pedido${o.pedido_numero?' #'+o.pedido_numero:''}</strong>. Ver na aba Pedidos →</button>` : ''}
       <div class="row" style="margin-top:8px; flex-wrap:wrap; gap:8px;">
         <button class="btn btn-sm" style="background:var(--accent); border-color:var(--accent); color:var(--accent-ink);" data-whatsapp="${o.id}">Enviar por WhatsApp</button>
         <button class="btn btn-sm" data-copy="${o.id}">Copiar resumo</button>
@@ -1908,6 +1919,9 @@ function renderOrcamentos(main){
     });
     list.querySelectorAll('[data-copiar-orc]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); copiarOrcamento(el.dataset.copiarOrc); });
+    });
+    list.querySelectorAll('[data-ir-pedido]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); irParaPedido(el.dataset.irPedido); });
     });
     list.querySelectorAll('[data-editar-orc]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); openOrcamentoBuilder(el.dataset.editarOrc, null); });
@@ -2309,11 +2323,29 @@ function enviarAvisoPagamento(id){
   const o = byId(state.orcamentos, id); if(!o) return;
   enviarWhatsAppParaCliente(o, textoAvisoPagamento(o));
 }
+// Lista os atributos que faltam definir numa peça (cor e/ou o rótulo de texto cadastrado em "Partes
+// e cores"), agregado por produto — nunca por unidade. Com só 1 parte personalizável (caso comum),
+// vem sem prefixo ("cor, nome"); com mais de 1, cada atributo ganha "de {nome da parte}" pra não
+// confundir qual é qual (mesma regra de desambiguação já usada em personalizacaoResumoUnidades).
+function atributosPersonalizaveisTexto(produto){
+  const partes = partesPersonalizaveis(produto);
+  const multiplasPartes = partes.length > 1;
+  const atributos = [];
+  partes.forEach(p=>{
+    const sufixo = multiplasPartes ? ` de ${p.nome || 'peça'}` : '';
+    if(p.tipo_cor==='personalizavel') atributos.push(`cor${sufixo}`);
+    if(p.texto_personalizavel) atributos.push(`${(p.rotulo_texto||'texto').toLowerCase()}${sufixo}`);
+  });
+  return atributos.join(', ');
+}
 // Mensagem de cobrança da personalização que falta — lista só as peças ainda pendentes (não repete
-// as que já foram escolhidas). Pode ser reenviada quantas vezes for preciso, é só um follow-up.
+// as que já foram escolhidas), uma linha por peça com os atributos que faltam (nunca unidade por
+// unidade). Pode ser reenviada quantas vezes for preciso, é só um follow-up.
 function textoPedirPersonalizacao(o){
-  const nomes = itensComPersonalizacaoPendente(o).map(({it})=> `◆ ${it.nome}`).join('\n');
-  return `■ *Falta só a personalização — Biri Prints 3D*\n\n${saudacaoCliente(o)} Pra colocar seu pedido pra produção, falta só você me passar a cor/nome de:\n${nomes}\n\nMe manda por aqui que eu já anoto e sigo com a produção. Obrigado!`;
+  const linhas = itensComPersonalizacaoPendente(o).map(({it, produto})=>
+    `◆ ${it.nome} (${fmtNum(it.quantidade,0)} un.) — ${atributosPersonalizaveisTexto(produto)}`
+  ).join('\n');
+  return `■ *Falta só a personalização — Biri Prints 3D*\n\n${saudacaoCliente(o)} Pra colocar seu pedido pra produção, preciso que você me passe estes dados (pode ser igual ou diferente em cada peça):\n\n${linhas}\n\nPode mandar tudo por aqui que eu já anoto e sigo com a produção. Obrigado!`;
 }
 function enviarPedirPersonalizacao(id){
   const o = byId(state.orcamentos, id); if(!o) return;
