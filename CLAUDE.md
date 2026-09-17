@@ -16,6 +16,8 @@ Desde 2026-09-16, o projeto tem dois ambientes Firebase separados, pra parar de 
   - **GitHub Pages** (o de sempre, ver `docs/STANDALONE-SETUP.md`) — inalterado.
   - **Firebase Hosting**, em **https://biri-prints-3d.web.app/** — todo push na `main` publica automaticamente (workflow `.github/workflows/deploy-prod.yml`, mesmo padrão do `deploy-qa.yml`, usando o Secret `FIREBASE_PROD_SERVICE_ACCOUNT`). Os dois servem exatamente o mesmo HTML, ligados ao mesmo Firestore de produção — não são ambientes diferentes, só duas portas de entrada pro mesmo app. Motivo: URL mais limpa e consistência com o padrão já usado no QA, com um domínio próprio (`biriprints.com.br`) planejado pro futuro. Quando o usuário confirmar a migração, o GitHub Pages pode ser desativado (fora do escopo desta mudança).
 
+**Primeiro acesso ao QA**: como é um projeto Firebase novo, o Authentication dele nasce sem nenhum usuário — login/senha de produção **não funcionam** lá (cada projeto Firebase tem sua própria lista de usuários, isolada). Pra conseguir entrar em https://biri-prints-3d-qa.web.app/, cadastre um usuário direto no Firebase Console → projeto `biri-prints-3d-qa` → **Authentication** → aba **Users** → **Add user** (pode ser o mesmo e-mail/senha de produção, ou um dedicado só pra QA — são bancos completamente separados).
+
 **Regra a partir de agora: todo trabalho novo (funcionalidade ou correção) nasce de uma branch a partir da `qa`, e a PR aponta pra `qa` como base** — nunca direto pra `main`. Só mescla `qa` → `main` quando o usuário pedir explicitamente que uma leva de mudanças já validada em QA está pronta pra produção.
 
 A árvore da `qa` difere da `main` nestes pontos, que **nunca** podem se misturar entre as duas:

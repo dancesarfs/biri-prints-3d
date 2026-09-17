@@ -21,6 +21,9 @@
     --warn:#9A6318;
     --warn-soft:#F5E7CE;
     --warn-soft-border:#E6CB99;
+    --pending:#B8480C;
+    --pending-soft:#FBE1CE;
+    --pending-soft-border:#F0BC93;
     --danger:#B23A2E;
     --danger-soft:#F7DFDB;
     --shadow: 0 1px 2px rgba(20,24,22,.06), 0 6px 16px -8px rgba(20,24,22,.18);
@@ -40,6 +43,9 @@
       --warn:#E3B15C;
       --warn-soft:#332A18;
       --warn-soft-border:#4F3F22;
+      --pending:#F0895A;
+      --pending-soft:#3D2416;
+      --pending-soft-border:#5C3A22;
       --danger:#E2766A;
       --danger-soft:#3A211D;
       --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 24px -10px rgba(0,0,0,.6);
@@ -59,6 +65,9 @@
     --warn:#E3B15C;
     --warn-soft:#332A18;
     --warn-soft-border:#4F3F22;
+    --pending:#F0895A;
+    --pending-soft:#3D2416;
+    --pending-soft-border:#5C3A22;
     --danger:#E2766A;
     --danger-soft:#3A211D;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 24px -10px rgba(0,0,0,.6);
@@ -232,6 +241,7 @@
   .badge-muted{background:var(--surface-2); color:var(--text-muted); border:1px solid var(--border);}
   .badge-pedido{background:var(--accent); color:var(--accent-ink); border:1px solid var(--accent);}
   .badge-danger{background:var(--danger-soft); color:var(--danger); border:1px solid var(--danger-soft);}
+  .badge-pending{background:var(--pending-soft); color:var(--pending); border:1px solid var(--pending-soft-border);}
 
   .cor-swatch{display:inline-block; width:14px; height:14px; border-radius:50%; border:1px solid var(--border); margin-right:6px; vertical-align:middle;}
 
@@ -765,6 +775,17 @@ function irParaAba(tabId){
   state.tab = tabId;
   state.expandedOrc = null;
   state.menuMobileAberto = false; // navegar fecha a gaveta no celular
+  renderNav();
+  renderMain();
+}
+// Navega direto pro pedido correspondente já expandido — usado pelo link "Encerrado -> virou Pedido
+// #N" no card do orçamento. Mesmo id do orçamento original (converter em pedido só muda campos no
+// mesmo documento, nunca cria um novo), então basta ir pra aba Pedidos com esse id já marcado como
+// expandido, sem deixar o vendedor procurar o pedido de novo na lista.
+function irParaPedido(id){
+  state.tab = 'pedidos';
+  state.expandedOrc = id;
+  state.menuMobileAberto = false;
   renderNav();
   renderMain();
 }
@@ -1859,7 +1880,7 @@ function renderOrcamentos(main){
         <div class="list-line" style="color:var(--accent);"><span>Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%)</span><span class="mono">− ${fmtBRL(l.desconto)}</span></div>
       `).join('') : ''}
       ${o.desconto_manual_valor>0 ? `<div class="list-line" style="color:var(--accent);"><span>Desconto negociado (${fmtNum(o.desconto_manual_pct,0)}%)</span><span class="mono">− ${fmtBRL(o.desconto_manual_valor)}</span></div>` : ''}
-      ${encerrado ? `<p style="font-size:.8rem; color:var(--text-muted); margin:10px 0 0;">Encerrado — virou <strong>Pedido${o.pedido_numero?' #'+o.pedido_numero:''}</strong>. Gerencie produção/pagamento na aba Pedidos.</p>` : ''}
+      ${encerrado ? `<button type="button" class="textbtn" data-ir-pedido="${o.id}" style="display:block; text-align:left; font-size:.8rem; padding:10px 0 0;">Encerrado — virou <strong>Pedido${o.pedido_numero?' #'+o.pedido_numero:''}</strong>. Ver na aba Pedidos →</button>` : ''}
       <div class="row" style="margin-top:8px; flex-wrap:wrap; gap:8px;">
         <button class="btn btn-sm" style="background:var(--accent); border-color:var(--accent); color:var(--accent-ink);" data-whatsapp="${o.id}">Enviar por WhatsApp</button>
         <button class="btn btn-sm" data-copy="${o.id}">Copiar resumo</button>
@@ -1897,6 +1918,9 @@ function renderOrcamentos(main){
     list.querySelectorAll('[data-copiar-orc]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); copiarOrcamento(el.dataset.copiarOrc); });
     });
+    list.querySelectorAll('[data-ir-pedido]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); irParaPedido(el.dataset.irPedido); });
+    });
     list.querySelectorAll('[data-editar-orc]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); openOrcamentoBuilder(el.dataset.editarOrc, null); });
     });
@@ -1906,9 +1930,6 @@ function renderOrcamentos(main){
     list.querySelectorAll('[data-converter-pedido]').forEach(el=>{
       el.addEventListener('click', (e)=>{
         e.stopPropagation();
-        const o = byId(state.orcamentos, el.dataset.converterPedido);
-        const pendente = o ? personalizacaoPendente(o) : null;
-        if(pendente){ showToast(`Falta escolher a personalização de "${pendente}" antes de converter em pedido`); return; }
         confirmThenAction(el, ()=>converterEmPedido(el.dataset.converterPedido), {confirmText:'Confirmar pedido?', confirmClass:'btn-primary'});
       });
     });
@@ -2011,11 +2032,14 @@ function renderPedidos(main){
   const filtro = state.filtroPedStatus || 'todos';
   const filtroCliente = state.filtroPedCliente || '';
   const filtroVendedor = state.filtroPedVendedor || 'todos';
-  let peds = filtro==='todos' ? pedTodos : pedTodos.filter(o=> statusPedido(o)===filtro);
+  let peds = filtro==='todos' ? pedTodos
+    : filtro==='pendente_personalizacao' ? pedTodos.filter(pedidoTemPersonalizacaoPendente)
+    : pedTodos.filter(o=> statusPedido(o)===filtro);
   if(filtroCliente.trim()) peds = peds.filter(o=> (o.cliente||'').toLowerCase().includes(filtroCliente.trim().toLowerCase()));
   if(filtroVendedor!=='todos') peds = peds.filter(o=> (o.vendedor_pedido_id||'')===filtroVendedor);
   const contagemPed = {};
   ['aberto','em_producao','pronto','entregue','cancelado'].forEach(v=>{ contagemPed[v] = pedTodos.filter(o=>statusPedido(o)===v).length; });
+  const contagemPendPersonalizacao = pedTodos.filter(pedidoTemPersonalizacaoPendente).length;
 
   main.innerHTML = `${offlineBanner()}
     <div class="row" style="justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
@@ -2024,6 +2048,7 @@ function renderPedidos(main){
         <button class="btn btn-sm ${filtro==='todos'?'btn-primary':''}" data-filtro-ped="todos">Todos (${pedTodos.length})</button>
         ${PEDIDO_STAGES.map(s=>`<button class="btn btn-sm ${filtro===s.v?'btn-primary':''}" data-filtro-ped="${s.v}">${s.label} (${contagemPed[s.v]})</button>`).join('')}
         <button class="btn btn-sm ${filtro==='cancelado'?'btn-primary':''}" data-filtro-ped="cancelado">Cancelados (${contagemPed.cancelado})</button>
+        <button class="btn btn-sm ${filtro==='pendente_personalizacao'?'btn-primary':''}" data-filtro-ped="pendente_personalizacao">Aguardando personalização (${contagemPendPersonalizacao})</button>
       </div>
     </div>
     ${filtrosClienteVendedorHtml('filtroPedCliente', 'filtroPedVendedor', filtroCliente, filtroVendedor)}
@@ -2047,10 +2072,14 @@ function renderPedidos(main){
         `${o.itens.length} ite${o.itens.length!==1?'ns':'m'}`,
         o.vendedor_pedido_nome || null,
       ].filter(Boolean).join(' · ');
-      const itensHtml = expanded ? `<div class="stack" style="margin-top:10px;">${o.itens.map(it=>`
+      const pendentesPz = new Set(itensComPersonalizacaoPendente(o).map(x=>x.it));
+      const itensHtml = expanded ? `<div class="stack" style="margin-top:10px;">${o.itens.map((it,itemIdx)=>{
+        const produto = it.produto_id ? byId(state.produtos, it.produto_id) : null;
+        const mostrarFormPz = sp==='aberto' && pendentesPz.has(it) && produto;
+        return `
         <div class="list-line"><span>${it.nome} × ${fmtNum(it.quantidade,0)}</span><span class="mono">${fmtBRL(it.preco_unit*it.quantidade)}</span></div>
-        ${personalizacaoResumoLinhaHtml(it)}
-      `).join('')}
+        ${mostrarFormPz ? renderPersonalizarPedidoForm(o, itemIdx, it, produto) : personalizacaoResumoLinhaHtml(it)}
+      `;}).join('')}
       ${(o.desconto_kit_total>0 || o.desconto_manual_valor>0) ? `<div class="list-line"><span>Subtotal (sem desconto)</span><span class="mono">${fmtBRL(o.subtotal)}</span></div>` : ''}
       ${(o.desconto_kit_linhas&&o.desconto_kit_linhas.length) ? o.desconto_kit_linhas.map(l=>`
         <div class="list-line" style="color:var(--accent);"><span>Desconto de kit — ${l.promoNome} (${fmtNum(l.pct,0)}%)</span><span class="mono">− ${fmtBRL(l.desconto)}</span></div>
@@ -2077,6 +2106,7 @@ function renderPedidos(main){
       <div class="row" style="margin-top:8px; flex-wrap:wrap; gap:8px;">
         <button class="btn btn-sm" style="background:var(--accent); border-color:var(--accent); color:var(--accent-ink);" data-whatsapp="${o.id}">Enviar por WhatsApp</button>
         <button class="btn btn-sm" style="background:var(--accent); border-color:var(--accent); color:var(--accent-ink);" data-avisar-status="${o.id}">Avisar: ${AVISO_STATUS_LABEL[sp]}</button>
+        ${pendentesPz.size>0 ? `<button class="btn btn-sm" style="background:var(--pending); border-color:var(--pending); color:#fff;" data-pedir-personalizacao="${o.id}">Pedir personalização</button>` : ''}
         <button class="btn btn-sm" data-copy="${o.id}">Copiar resumo</button>
         <button class="btn btn-sm" data-copiar-orc="${o.id}">Copiar orçamento</button>
         <button class="btn btn-sm btn-ghost" data-reverter-pedido="${o.id}">Reverter para orçamento</button>
@@ -2091,6 +2121,7 @@ function renderPedidos(main){
             <div class="meta" style="font-size:.76rem;color:var(--text-muted);">${metaTxt}</div>
           </div>
           <span class="badge ${PEDIDO_BADGE_CLASS[sp]}">${PEDIDO_BADGE_LABEL[sp]}</span>
+          ${pendentesPz.size>0 ? '<span class="badge badge-pending">Aguardando personalização</span>' : ''}
           ${o.pago ? '<span class="badge badge-accent">Pago</span>' : ''}
           <span class="mono" style="font-weight:600;">${fmtBRL(o.total)}</span>
         </div>
@@ -2112,6 +2143,28 @@ function renderPedidos(main){
     });
     list.querySelectorAll('[data-avisar-pagamento]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); enviarAvisoPagamento(el.dataset.avisarPagamento); });
+    });
+    list.querySelectorAll('[data-pedir-personalizacao]').forEach(el=>{
+      el.addEventListener('click', (e)=>{ e.stopPropagation(); enviarPedirPersonalizacao(el.dataset.pedirPersonalizacao); });
+    });
+    list.querySelectorAll('.ppz-cor').forEach(sel=>{
+      sel.addEventListener('click', (e)=> e.stopPropagation());
+      sel.addEventListener('change', (e)=>{
+        e.stopPropagation();
+        atualizarPersonalizacaoPedido(sel.dataset.pedido, Number(sel.dataset.item), Number(sel.dataset.u), sel.dataset.parte, 'cor_id', sel.value);
+      });
+    });
+    list.querySelectorAll('.ppz-texto').forEach(inp=>{
+      inp.addEventListener('click', (e)=> e.stopPropagation());
+      inp.addEventListener('input', (e)=>{
+        e.stopPropagation();
+        const o = byId(state.orcamentos, inp.dataset.pedido); if(!o) return;
+        setPersonalizacaoValor(o.itens[Number(inp.dataset.item)], Number(inp.dataset.u), inp.dataset.parte, 'texto', inp.value);
+      });
+      inp.addEventListener('blur', (e)=>{
+        e.stopPropagation();
+        atualizarPersonalizacaoPedido(inp.dataset.pedido, Number(inp.dataset.item), Number(inp.dataset.u), inp.dataset.parte, 'texto', inp.value);
+      });
     });
     list.querySelectorAll('[data-copiar-orc]').forEach(el=>{
       el.addEventListener('click', (e)=>{ e.stopPropagation(); copiarOrcamento(el.dataset.copiarOrc); });
@@ -2190,8 +2243,17 @@ function copiarOrcamento(id){
 }
 // Avança/retrocede o pedido pela sequência Aberto -> Em produção -> Pronto -> Entregue (o
 // vendedor escolhe livremente no seletor, sem precisar passar etapa por etapa nem confirmar).
+// Bloqueia especificamente a transição para "Em produção" enquanto houver alguma peça com
+// personalização pendente (cor/texto ainda não escolhido) — pedidos sem personalização, ou já
+// preenchidos, seguem livres; pedidos antigos que já passaram dessa etapa antes dessa checagem
+// existir também nunca são afetados retroativamente (o bloqueio só entra na hora dessa transição).
 function setStatusPedido(id, novoStatus){
   const o = byId(state.orcamentos, id); if(!o) return;
+  if(novoStatus==='em_producao' && pedidoTemPersonalizacaoPendente(o)){
+    showToast('Falta preencher a personalização de alguma peça antes de avançar para "Em produção"');
+    renderMain();
+    return;
+  }
   if(!state.dbOk){ o.status_pedido = novoStatus; renderMain(); return; }
   state.db.collection('orcamentos').doc(id).update({status_pedido:novoStatus}).catch(()=>showToast('Não deu pra atualizar agora'));
 }
@@ -2258,6 +2320,34 @@ function enviarAvisoStatusPedido(id){
 function enviarAvisoPagamento(id){
   const o = byId(state.orcamentos, id); if(!o) return;
   enviarWhatsAppParaCliente(o, textoAvisoPagamento(o));
+}
+// Lista os atributos que faltam definir numa peça (cor e/ou o rótulo de texto cadastrado em "Partes
+// e cores"), agregado por produto — nunca por unidade. Com só 1 parte personalizável (caso comum),
+// vem sem prefixo ("cor, nome"); com mais de 1, cada atributo ganha "de {nome da parte}" pra não
+// confundir qual é qual (mesma regra de desambiguação já usada em personalizacaoResumoUnidades).
+function atributosPersonalizaveisTexto(produto){
+  const partes = partesPersonalizaveis(produto);
+  const multiplasPartes = partes.length > 1;
+  const atributos = [];
+  partes.forEach(p=>{
+    const sufixo = multiplasPartes ? ` de ${p.nome || 'peça'}` : '';
+    if(p.tipo_cor==='personalizavel') atributos.push(`cor${sufixo}`);
+    if(p.texto_personalizavel) atributos.push(`${(p.rotulo_texto||'texto').toLowerCase()}${sufixo}`);
+  });
+  return atributos.join(', ');
+}
+// Mensagem de cobrança da personalização que falta — lista só as peças ainda pendentes (não repete
+// as que já foram escolhidas), uma linha por peça com os atributos que faltam (nunca unidade por
+// unidade). Pode ser reenviada quantas vezes for preciso, é só um follow-up.
+function textoPedirPersonalizacao(o){
+  const linhas = itensComPersonalizacaoPendente(o).map(({it, produto})=>
+    `◆ ${it.nome} (${fmtNum(it.quantidade,0)} un.) — ${atributosPersonalizaveisTexto(produto)}`
+  ).join('\n');
+  return `■ *Falta só a personalização — Biri Prints 3D*\n\n${saudacaoCliente(o)} Pra colocar seu pedido pra produção, preciso que você me passe estes dados (pode ser igual ou diferente em cada peça):\n\n${linhas}\n\nPode mandar tudo por aqui que eu já anoto e sigo com a produção. Obrigado!`;
+}
+function enviarPedirPersonalizacao(id){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  enviarWhatsAppParaCliente(o, textoPedirPersonalizacao(o));
 }
 
 function openOrcamentoBuilder(existingId, prefillProdutoId, copiarDe){
@@ -3195,17 +3285,21 @@ function personalizacaoResumoUnidades(it, produto){
   }
   return linhas.join(' · ');
 }
-// Primeiro item (nome da peça) com personalização pendente — usado pra bloquear a conversão em
-// pedido com uma mensagem clara de qual peça falta terminar. null quando não falta nada.
-function personalizacaoPendente(o){
-  for(const it of o.itens){
-    if(it.incluido===false) continue;
+// Itens do pedido com personalização ainda incompleta — não é um flag salvo, é sempre calculado
+// na hora a partir de it.personalizacoes x produto.partes (personalizacaoItemProgresso), pra nunca
+// dessincronizar do que já foi de fato preenchido. Usado pro badge, pro filtro e pro bloqueio de
+// "Aberto -> Em produção" em Pedidos (a conversão de Orçamento pra Pedido não bloqueia mais nisso).
+function itensComPersonalizacaoPendente(o){
+  return (o.itens||[]).filter(it=>{
+    if(it.incluido===false) return false;
     const produto = it.produto_id ? byId(state.produtos, it.produto_id) : null;
-    if(!produto) continue;
+    if(!produto) return false;
     const prog = personalizacaoItemProgresso(it, produto);
-    if(prog.aplicavel && prog.completas < prog.total) return it.nome;
-  }
-  return null;
+    return prog.aplicavel && prog.completas < prog.total;
+  }).map(it=>({it, produto: byId(state.produtos, it.produto_id)}));
+}
+function pedidoTemPersonalizacaoPendente(o){
+  return itensComPersonalizacaoPendente(o).length > 0;
 }
 // Bloco extra SÓ na mensagem de "pedido recebido" (nunca nas de mudança de status nem no texto do
 // orçamento) — resumo compacto do que foi escolhido, pro vendedor confirmar com o cliente ANTES de
@@ -3227,6 +3321,45 @@ function personalizacaoResumoLinhaHtml(it){
   if(!produto) return '';
   const resumo = personalizacaoResumoUnidades(it, produto);
   return resumo ? `<div class="list-line" style="font-size:.74rem; color:var(--text-muted);"><span>🎨 ${resumo}</span></div>` : '';
+}
+// Formulário de preenchimento direto no card do Pedido (sem abrir o editor de peça) — mesmo padrão
+// visual do renderPersonalizarForm do construtor de orçamento (um select de cor e/ou input de texto
+// por unidade), só que grava direto no pedido em produção em vez de num rascunho local. Só aparece
+// pra itens com personalização pendente e enquanto o pedido está "Aberto" (ver renderPedidos).
+function renderPersonalizarPedidoForm(o, itemIdx, it, produto){
+  const partes = partesPersonalizaveis(produto);
+  const unidadesHtml = Array.from({length: it.quantidade}, (_, u)=>{
+    const unidade = (it.personalizacoes && it.personalizacoes[u]) || {};
+    const camposHtml = partes.map((p, pi)=>{
+      const valor = unidade[p.id] || {};
+      const prefixo = partes.length>1 ? (p.nome || `Parte ${pi+1}`)+' — ' : '';
+      let html = '';
+      if(p.tipo_cor==='personalizavel'){
+        html += `<label class="field" style="flex:1;"><span>${prefixo}Cor</span><select class="ipt ppz-cor" data-pedido="${o.id}" data-item="${itemIdx}" data-u="${u}" data-parte="${p.id}">${corOptionsHtml(valor.cor_id, produto.material_id)}</select></label>`;
+      }
+      if(p.texto_personalizavel){
+        html += `<label class="field" style="flex:1;"><span>${prefixo}${p.rotulo_texto||'Texto'}${p.texto_obrigatorio?'':' (opcional)'}</span><input class="ipt ppz-texto" data-pedido="${o.id}" data-item="${itemIdx}" data-u="${u}" data-parte="${p.id}" value="${valor.texto||''}" ${p.texto_max_chars?`maxlength="${p.texto_max_chars}"`:''}></label>`;
+      }
+      return html;
+    }).join('');
+    return `<div class="row" style="gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:6px;">
+      <span style="font-size:.78rem; color:var(--text-muted); min-width:64px;">Unidade ${u+1}</span>
+      ${camposHtml}
+    </div>`;
+  }).join('');
+  return `<div class="card" style="padding:10px; margin-top:6px; background:var(--pending-soft); border-color:var(--pending-soft-border);">
+    <p style="font-size:.74rem; color:var(--pending); font-weight:600; margin:0 0 6px;">🎨 Falta personalizar: ${it.nome}</p>
+    <div class="stack">${unidadesHtml}</div>
+  </div>`;
+}
+// Grava a escolha de cor/texto de uma unidade direto no pedido — atualiza o estado local na hora
+// (pro contador/badge/desbloqueio do "Em produção" refletirem de imediato) e só então manda pro
+// Firestore em segundo plano, igual ao padrão usado no resto do Pedidos.
+function atualizarPersonalizacaoPedido(id, itemIdx, unidadeIdx, parteId, campo, valor){
+  const o = byId(state.orcamentos, id); if(!o) return;
+  setPersonalizacaoValor(o.itens[itemIdx], unidadeIdx, parteId, campo, valor);
+  renderMain();
+  if(state.dbOk) state.db.collection('orcamentos').doc(id).update({itens: o.itens}).catch(()=>showToast('Não deu pra salvar agora'));
 }
 
 // ---- "Vendedor atual" (quem está usando o app agora) ----
