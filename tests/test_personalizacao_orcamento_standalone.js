@@ -104,6 +104,30 @@ async function configurarParteDaPeca(page, nomeProduto, { textoObrigatorio }) {
   await page.waitForTimeout(200);
 }
 
+// Configura a peça com N partes personalizáveis distintas (a 1ª já vem por padrão no editor; as
+// demais nascem via "+ Adicionar parte") — usado pra testar a mensagem de "Pedir personalização"
+// com mais de uma parte na mesma peça (precisa desambiguar "de {nome da parte}").
+async function configurarPartesMultiplas(page, nomeProduto, partes) {
+  await abrirAbaStandalone(page, 'catalogo');
+  await page.locator('.item-linha', { hasText: nomeProduto }).locator('[data-edit]').click();
+  await page.waitForSelector('#epPartes');
+  for (let i = 1; i < partes.length; i++) await page.click('#epAddParte');
+  await page.waitForTimeout(80);
+  for (let i = 0; i < partes.length; i++) {
+    const p = partes[i];
+    await page.fill(`.parte-nome[data-idx="${i}"]`, p.nome);
+    if (p.corPersonalizavel) await page.click(`.parte-tipocor[data-idx="${i}"][value="personalizavel"]`);
+    await page.waitForTimeout(50);
+    if (p.textoRotulo) {
+      await page.click(`.parte-texto-chk[data-idx="${i}"]`);
+      await page.waitForTimeout(50);
+      await page.fill(`.parte-rotulo[data-idx="${i}"]`, p.textoRotulo);
+    }
+  }
+  await page.click('#epSave');
+  await page.waitForTimeout(200);
+}
+
 (async () => {
   const browser = await chromium.launch();
   const page = await novaPagina(browser);
@@ -231,8 +255,9 @@ async function configurarParteDaPeca(page, nomeProduto, { textoObrigatorio }) {
   const popupPz = await popupPedirPz;
   await popupPz.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => {});
   const textoPedirPz = decodeURIComponent(popupPz.url());
-  assert(textoPedirPz.includes('Chaveiro redondo'), `mensagem de "Pedir personalização" deve listar o Chaveiro pendente — obtido: ${textoPedirPz}`);
+  assert(textoPedirPz.includes('◆ Chaveiro redondo (1 un.) — cor, nome'), `mensagem de "Pedir personalização" deve listar o Chaveiro com os atributos (cor + rótulo "Nome" cadastrado) — obtido: ${textoPedirPz}`);
   assert(!textoPedirPz.includes('Porta-canetas'), `mensagem de "Pedir personalização" não deve listar o Porta-canetas (já preenchido) — obtido: ${textoPedirPz}`);
+  assert(!/\bUnidade\b|\b1\)|\b2\)|\b3\)/.test(textoPedirPz), `mensagem não deve enumerar unidade por unidade — obtido: ${textoPedirPz}`);
   await popupPz.close().catch(() => {});
 
   // ---------- 7c. tentar avançar pra "Em produção" com o Chaveiro pendente é bloqueado (fica em "Aberto") ----------
@@ -332,6 +357,61 @@ async function configurarParteDaPeca(page, nomeProduto, { textoObrigatorio }) {
   await page.waitForTimeout(150);
   const statusAntigoDepois = await page.locator(`${cardAntigo} [data-status-pedido]`).inputValue();
   assert(statusAntigoDepois === 'pronto', `pedido que já passou de "Aberto" antes dessa checagem existir não deve ser bloqueado retroativamente — obtido: "${statusAntigoDepois}"`);
+
+  // ---------- 12. "Pedir personalização" com peça de MAIS DE UMA parte personalizável -> desambigua "de {parte}" ----------
+  await addProduto(page, 'Boneco Duplo', 'PLA Personalização', 'Impressora PZ');
+  await configurarPartesMultiplas(page, 'Boneco Duplo', [
+    { nome: 'Corpo', corPersonalizavel: true, textoRotulo: 'Nome' },
+    { nome: 'Chapéu', corPersonalizavel: true },
+  ]);
+
+  await abrirAbaStandalone(page, 'orcamentos');
+  await page.waitForSelector('#fabNovoOrc');
+  await page.click('#fabNovoOrc');
+  await page.waitForSelector('[data-cliente-modo="novo"]');
+  await page.click('[data-cliente-modo="novo"]');
+  await page.waitForSelector('#oClienteNome');
+  await page.fill('#oClienteNome', 'Cliente Multiparte');
+  const selBoneco = await valorDoOptionPorTexto(page, 'oProdSel', 'Boneco Duplo');
+  await page.selectOption('#oProdSel', selBoneco);
+  await page.fill('#oQtd', '1');
+  await page.click('#oAddItem');
+  await page.click('#oSalvar');
+  await page.waitForSelector('.card h3:has-text("Cliente Multiparte")');
+  const cardMultiOrc = '.card:has(h3:has-text("Cliente Multiparte"))';
+  await page.click(`${cardMultiOrc} [data-toggle-orc]`);
+  await page.waitForSelector('[data-converter-pedido]');
+  await page.click('[data-converter-pedido]');
+  await page.waitForTimeout(80);
+  await page.click('[data-converter-pedido]');
+  await page.waitForTimeout(150);
+
+  await abrirAbaStandalone(page, 'pedidos');
+  const cardMulti = '.card:has(h3:has-text("Cliente Multiparte"))';
+  await page.waitForSelector(`${cardMulti} [data-toggle-orc]`);
+  await page.click(`${cardMulti} [data-toggle-orc]`);
+  await page.waitForSelector(`${cardMulti} [data-pedir-personalizacao]`);
+  const popupMultiPromise = page.waitForEvent('popup');
+  await page.click(`${cardMulti} [data-pedir-personalizacao]`);
+  const popupMulti = await popupMultiPromise;
+  await popupMulti.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => {});
+  const textoMulti = decodeURIComponent(popupMulti.url());
+  assert(textoMulti.includes('◆ Boneco Duplo (1 un.) — cor de Corpo, nome de Corpo, cor de Chapéu'), `com mais de 1 parte personalizável, cada atributo deve ser desambiguado com "de {parte}" — obtido: ${textoMulti}`);
+  await popupMulti.close().catch(() => {});
+
+  // ---------- 13. "Encerrado -> virou Pedido #N" agora é clicável e leva direto pro card já expandido em Pedidos ----------
+  await abrirAbaStandalone(page, 'orcamentos');
+  await page.waitForSelector(`${cardMultiOrc} [data-toggle-orc]`);
+  await page.click(`${cardMultiOrc} [data-toggle-orc]`);
+  await page.waitForSelector(`${cardMultiOrc} [data-ir-pedido]`);
+  const rotuloIrPedido = await page.locator(`${cardMultiOrc} [data-ir-pedido]`).textContent();
+  assert(/Encerrado.*Pedido/s.test(rotuloIrPedido), `link deve manter o texto "Encerrado ... Pedido #N" — obtido: "${rotuloIrPedido}"`);
+  await page.click(`${cardMultiOrc} [data-ir-pedido]`);
+  await page.waitForTimeout(150);
+  const abaAtual = await page.evaluate(() => state.tab);
+  assert(abaAtual === 'pedidos', `clicar no link deve navegar pra aba Pedidos — obtido: "${abaAtual}"`);
+  const statusVisivelSemClique = await page.$(`${cardMulti} [data-status-pedido]`);
+  assert(statusVisivelSemClique !== null, 'o card do pedido correspondente já deve chegar expandido, sem precisar clicar de novo pra abrir');
 
   await browser.close();
   console.log(process.exitCode === 1 ? '\n=== ALGUM TESTE FALHOU ===' : '\n=== TODOS OS TESTES PASSARAM ===');
